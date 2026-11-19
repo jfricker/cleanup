@@ -1,0 +1,337 @@
+# Default configuration for `cleanup`.
+# Save a copy with:
+#   cleanup --print-config > ~/.config/cleanup/config.toml
+# then edit it to change, add or disable categories and retired tools.
+# A user file must keep `version = 1`. Unknown keys are errors.
+
+version = 1
+
+[global]
+# Directories that are never scanned or deleted. `.git` is always included.
+never_touch = [".git", ".wrangler"]
+
+[providers.worktrees]
+enabled = true
+label = "Git Worktrees"
+description = "Stale registered git worktrees under the scan root, and gone worktree entries"
+age_days = 30
+sort_order = 90
+
+# ============================================================================
+# Artifact categories
+# ============================================================================
+# Rule keys: id, category, badge, kind ("dir" | "file"), names, globs, opt_in
+# ("venvs" | "modules"), require_self_markers, require_sibling_markers,
+# require_ancestor_markers, strategy ("remove" | "empty-contents"), warning.
+
+[categories.python]
+enabled = true
+label = "Python"
+description = "Regenerable Python caches and marker-verified virtualenvs"
+sort_order = 10
+prune = ["node_modules", "site-packages"]
+
+[[categories.python.rules]]
+id = "caches"
+category = "Caches"
+badge = "cache"
+kind = "dir"
+names = [
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    ".nox",
+    ".hypothesis",
+    "htmlcov",
+]
+globs = ["*.egg-info"]
+
+[[categories.python.rules]]
+id = "coverage-file"
+category = "Caches"
+badge = "cache"
+kind = "file"
+names = [".coverage"]
+
+[[categories.python.rules]]
+id = "venvs"
+category = "Virtualenvs"
+badge = "venv"
+kind = "dir"
+opt_in = "venvs"
+names = ["venv"]
+globs = ["venv-*", ".*venv*"]
+require_self_markers = ["pyvenv.cfg", "bin/activate", "Scripts/activate"]
+warning = "Python virtualenvs will be deleted (recreate with: pip install -r requirements.txt / uv sync / poetry install)"
+
+[categories.node]
+enabled = true
+label = "Node"
+description = "Regenerable Node/JS/TS framework caches, build outputs and node_modules"
+sort_order = 20
+prune = ["node_modules"]
+
+[[categories.node.rules]]
+id = "framework-artifacts"
+category = "Build Artifacts"
+badge = "art"
+kind = "dir"
+names = [
+    ".astro",
+    ".next",
+    ".nuxt",
+    ".output",
+    ".svelte-kit",
+    ".turbo",
+    ".parcel-cache",
+    ".angular",
+    ".expo",
+    ".vite",
+    ".netlify",
+]
+
+[[categories.node.rules]]
+id = "generic-build-dirs"
+category = "Build Artifacts"
+badge = "art"
+kind = "dir"
+names = ["dist", "build", "coverage"]
+require_ancestor_markers = ["package.json"]
+
+[[categories.node.rules]]
+id = "artifact-files"
+category = "Build Artifacts"
+badge = "art"
+kind = "file"
+names = [".eslintcache"]
+globs = ["*.tsbuildinfo", "npm-debug.log*", ".pnpm-debug.log*"]
+
+[[categories.node.rules]]
+id = "node-modules"
+category = "node_modules"
+badge = "mod"
+kind = "dir"
+opt_in = "modules"
+names = ["node_modules"]
+warning = "node_modules trees will be deleted (restore with: npm ci / pnpm install / yarn; pnpm hardlinks may reclaim less than reported)"
+
+[categories.rust]
+enabled = true
+label = "Rust"
+description = "Cargo target/ build directories next to Cargo.toml"
+sort_order = 30
+prune = ["node_modules"]
+
+[[categories.rust.rules]]
+id = "cargo-target"
+category = "Build Targets"
+badge = "cargo"
+kind = "dir"
+names = ["target"]
+require_sibling_markers = ["Cargo.toml"]
+warning = "Cargo target/ directories will be deleted (rebuild with: cargo build)"
+
+[categories.swift]
+enabled = true
+label = "Swift / Xcode"
+description = "SwiftPM .build/.swiftpm and local DerivedData directories"
+sort_order = 40
+prune = ["node_modules"]
+
+[[categories.swift.rules]]
+id = "swiftpm-build"
+category = "SwiftPM Builds"
+badge = "swift"
+kind = "dir"
+names = [".build", ".swiftpm"]
+require_sibling_markers = ["Package.swift"]
+warning = "SwiftPM .build/.swiftpm caches will be deleted (rebuild with: swift build)"
+
+[[categories.swift.rules]]
+id = "derived-data"
+category = "DerivedData"
+badge = "xcode"
+kind = "dir"
+names = [".derivedData", "DerivedData"]
+
+[categories.gradle]
+enabled = true
+label = "Gradle / Android"
+description = "Gradle caches and project build directories"
+sort_order = 50
+prune = ["node_modules"]
+
+[[categories.gradle.rules]]
+id = "gradle-cache"
+category = "Gradle Caches"
+badge = "gradl"
+kind = "dir"
+names = [".gradle"]
+
+[[categories.gradle.rules]]
+id = "gradle-build"
+category = "Gradle Builds"
+badge = "gradl"
+kind = "dir"
+names = ["build"]
+require_sibling_markers = [
+    "build.gradle",
+    "build.gradle.kts",
+    "settings.gradle",
+    "settings.gradle.kts",
+]
+
+[categories.cmake]
+enabled = true
+label = "CMake"
+description = "CMake build trees verified by CMakeCache.txt"
+sort_order = 60
+prune = ["node_modules"]
+
+[[categories.cmake.rules]]
+id = "cmake-build"
+category = "CMake Builds"
+badge = "cmake"
+kind = "dir"
+names = ["build"]
+globs = ["cmake-build-*"]
+require_self_markers = ["CMakeCache.txt"]
+
+[categories.test-artifacts]
+enabled = true
+label = "Test Reports"
+description = "Playwright and JS test/coverage output directories"
+sort_order = 70
+prune = ["node_modules"]
+
+[[categories.test-artifacts.rules]]
+id = "js-test-reports"
+category = "Test Outputs"
+badge = "test"
+kind = "dir"
+names = ["test-results", "playwright-report", "blob-report", ".nyc_output"]
+require_ancestor_markers = ["package.json"]
+
+[categories.macos]
+enabled = false
+label = "macOS Metadata"
+description = "Finder .DS_Store and AppleDouble ._* files (opt in with -o macos)"
+sort_order = 110
+prune = ["node_modules", "target", ".build"]
+
+[[categories.macos.rules]]
+id = "finder-junk"
+category = "Finder Metadata"
+badge = "macos"
+kind = "file"
+names = [".DS_Store"]
+globs = ["._*"]
+
+# ============================================================================
+# Retired tools
+# ============================================================================
+# A tool is scanned only when `retired = true` here or its id is passed with
+# `--retired`. Nothing is detected from PATH or installed apps. Every retired tool
+# is age-gated (age_days >= 1); tracked files are never deleted.
+
+[retired_tools]
+enabled = true
+label = "Retired Tools"
+description = "Leftovers of dev tools you have marked as retired"
+age_days = 30
+sort_order = 95
+
+[[retired_tools.tools]]
+id = "orca"
+name = "Orca"
+retired = false
+dirs = [".orca"]
+files = []
+note = "Orca agent workspace and metadata tree"
+
+[[retired_tools.tools]]
+id = "cursor"
+name = "Cursor"
+retired = false
+dirs = [".cursor"]
+files = [".cursorrules", ".cursorignore", ".cursorindexingignore"]
+note = "Cursor AI editor rules and workspace settings"
+
+[[retired_tools.tools]]
+id = "zed"
+name = "Zed"
+retired = false
+dirs = [".zed"]
+files = []
+note = "Zed editor workspace settings and caches"
+
+[[retired_tools.tools]]
+id = "pi"
+name = "Pi"
+retired = false
+dirs = [".pi"]
+files = []
+note = "Pi coding agent workspace artifacts"
+
+[[retired_tools.tools]]
+id = "windsurf"
+name = "Windsurf"
+retired = false
+dirs = [".windsurf"]
+files = [".windsurfrules"]
+note = "Windsurf editor rules and workspace artifacts"
+
+[[retired_tools.tools]]
+id = "aider"
+name = "Aider"
+retired = false
+dirs = []
+files = [
+    ".aider.chat.history.md",
+    ".aider.input.history",
+    ".aider.conf.yml",
+    ".aider.tags.cache.*",
+]
+note = "Aider chat history, input history and tag caches"
+
+[[retired_tools.tools]]
+id = "cline"
+name = "Cline"
+retired = false
+dirs = [".cline"]
+files = [".clinerules"]
+note = "Cline agent configuration and rules"
+
+[[retired_tools.tools]]
+id = "roo"
+name = "Roo Code"
+retired = false
+dirs = [".roo"]
+files = [".roorules"]
+note = "Roo Code agent configuration and rules"
+
+[[retired_tools.tools]]
+id = "continue"
+name = "Continue"
+retired = false
+dirs = [".continue"]
+files = []
+note = "Continue IDE assistant workspace config"
+
+[[retired_tools.tools]]
+id = "fleet"
+name = "JetBrains Fleet"
+retired = false
+dirs = [".fleet"]
+files = []
+note = "JetBrains Fleet workspace settings"
+
+[[retired_tools.tools]]
+id = "sublime"
+name = "Sublime Text"
+retired = false
+dirs = []
+files = ["*.sublime-workspace"]
+note = "Sublime Text session workspace files"

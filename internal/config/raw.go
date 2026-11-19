@@ -1,0 +1,73 @@
+package config
+
+// Raw types mirror the TOML file. Pointers distinguish "unset" from zero so a user
+// file can override individual fields of the defaults.
+
+type rawFile struct {
+	Version    *int                    `toml:"version"`
+	Global     *rawGlobal              `toml:"global"`
+	Providers  *rawProviders           `toml:"providers"`
+	Categories map[string]*rawCategory `toml:"categories"`
+	Retired    *rawRetired             `toml:"retired_tools"`
+}
+
+type rawGlobal struct {
+	NeverTouch *[]string `toml:"never_touch"`
+}
+
+type rawProviders struct {
+	Worktrees *rawProvider `toml:"worktrees"`
+}
+
+type rawProvider struct {
+	Enabled     *bool   `toml:"enabled"`
+	Label       *string `toml:"label"`
+	Description *string `toml:"description"`
+	AgeDays     *int    `toml:"age_days"`
+	SortOrder   *int    `toml:"sort_order"`
+}
+
+type rawCategory struct {
+	Enabled     *bool      `toml:"enabled"`
+	Label       *string    `toml:"label"`
+	Description *string    `toml:"description"`
+	SortOrder   *int       `toml:"sort_order"`
+	Prune       *[]string  `toml:"prune"`
+	Rules       *[]rawRule `toml:"rules"`
+}
+
+// rawRule is replaced wholesale when a user sets a category's rules, so its fields
+// need no pointers.
+type rawRule struct {
+	ID                     string   `toml:"id"`
+	Category               string   `toml:"category"`
+	Badge                  string   `toml:"badge"`
+	Kind                   string   `toml:"kind"`
+	Names                  []string `toml:"names"`
+	Globs                  []string `toml:"globs"`
+	OptIn                  string   `toml:"opt_in"`
+	RequireSelfMarkers     []string `toml:"require_self_markers"`
+	RequireSiblingMarkers  []string `toml:"require_sibling_markers"`
+	RequireAncestorMarkers []string `toml:"require_ancestor_markers"`
+	Strategy               string   `toml:"strategy"`
+	Warning                string   `toml:"warning"`
+}
+
+type rawRetired struct {
+	Enabled     *bool     `toml:"enabled"`
+	Label       *string   `toml:"label"`
+	Description *string   `toml:"description"`
+	AgeDays     *int      `toml:"age_days"`
+	SortOrder   *int      `toml:"sort_order"`
+	Tools       []rawTool `toml:"tools"`
+}
+
+type rawTool struct {
+	ID      string    `toml:"id"`
+	Name    *string   `toml:"name"`
+	Retired *bool     `toml:"retired"`
+	AgeDays *int      `toml:"age_days"`
+	Dirs    *[]string `toml:"dirs"`
+	Files   *[]string `toml:"files"`
+	Note    *string   `toml:"note"`
+}
