@@ -20,6 +20,7 @@
 - [x] 2. gitx: hardened runner (env scrub, -c flags, timeout + process-group kill, semaphore), filter neutralisation, porcelain v2 / worktree `-z` parsers with fuzz tests, queries. AC-G1/G2 (runner level), AC-G6, AC-G7, AC-G9 pass.
 - [x] 3. config: embedded defaults (gleanup categories; `[retired_tools]` with `retired = false`), typed enums with invalid zero values, Undecoded() rejection with file:line and suggestions, merge by key/id, pattern validation, `.git` forced. AC-R5, AC-F1–F4, RET-3 pass. Port notes: gleanup's `delete_strategy` is `strategy` (SPEC CAT-2); `always_prune` replaced by `prune = ["node_modules"]` on node; per-provider `include_dirty` dropped (`-D` is CLI-only per SPEC).
 - [x] 4. rootguard: canonical root, home from the password database, exact/subtree refusal rules (macOS + Linux), opens `*os.Root`. AC-C3 passes. Note: macOS temp dirs (`/private/var/...`) are refused by default, so tests pass `Options{SystemRules: []Rule{}}` and end-to-end binary tests must create roots outside `/private` (e.g. under the repo).
+- [x] 5. walk: parallel single traversal, per-visitor descend masks (a prune or candidate stops only that visitor), ancestor-marker bitset, enclosing git tree, device check, unreadable dirs recorded, ReadDir counter. AC-W1 passes.
 
 ## Design invariants (regression guards)
 
