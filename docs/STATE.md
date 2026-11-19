@@ -23,6 +23,7 @@
 - [x] 5. walk: parallel single traversal, per-visitor descend masks (a prune or candidate stops only that visitor), ancestor-marker bitset, enclosing git tree, device check, unreadable dirs recorded, ReadDir counter. AC-W1 passes.
 - [x] 6. match + worktrees: category visitor (names/globs, any-of sibling/ancestor/self markers, opt-ins, per-category prune), retired visitor (only retired or `--retired` tools, age gate carried), worktree provider (in-root candidates, outside-root list, prunable repos). Rule matrix, AC-R4 matcher side, AC-C1 candidate side pass.
 - [x] 7. safety: unexported `Target`, fail-closed `Inspect` pipeline (containment, subtree scan, batched tracked check, GIT-2/3/5 per tree, AGE-1/2), `Reconcile`, revalidating `Delete` through `os.Root`, NFR-4 source scan (probe-verified). AC-R1–R4, AC-G1 (inspection level), AC-G3–G5, AC-G8, AC-G10, AC-C1, AC-C2, AC-C4, AC-D4, AC-E2 pass. Additions within spec intent: a candidate containing a non-`.git` never-touch entry (e.g. `.wrangler`) is skipped; an invalid strategy is skipped.
+- [x] 8. scan + runlog + execute: `scan.Run` (walk → dedup → worktrees → batched tracked → inspector pool → Reconcile, throttled progress), `runlog` (XDG path, 0700/0600 JSONL), `execute.Runner` (soft/hard contexts, worktrees-then-deepest order, nested bytes counted once, prune after loop even when interrupted). AC-D1, AC-D2, AC-D3, scan cancel with goleak pass.
 
 ## Design invariants (regression guards)
 

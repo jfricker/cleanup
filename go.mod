@@ -7,7 +7,10 @@ tool (
 	honnef.co/go/tools/cmd/staticcheck
 )
 
-require github.com/BurntSushi/toml v1.6.0
+require (
+	github.com/BurntSushi/toml v1.6.0
+	go.uber.org/goleak v1.3.0
+)
 
 require (
 	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
