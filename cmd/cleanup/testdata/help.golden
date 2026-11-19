@@ -1,0 +1,46 @@
+cleanup 0.1.0-dev: reclaim disk space from regenerable dev artifacts, stale git
+worktrees and retired tools' leftovers, without deleting work.
+
+Usage: cleanup [OPTIONS] [ROOT]
+
+Runs as a dry run unless -d/--delete is given.
+
+Mode:
+  -n, --dry-run              Preview only; delete nothing (default; the last of -n/-d wins)
+  -d, --delete               Delete selected items (needs TUI confirmation or -f/--force)
+  -f, --force                Skip the TUI and confirmation when deleting
+
+Selection:
+  -r, --root DIR             Directory to scan (default ~/Projects)
+  -c, --config FILE          Config file merged over the defaults (default ~/.config/cleanup/config.toml)
+  -o, --only IDS             Run only these cleaner ids (comma-separated or repeated)
+  -x, --exclude IDS          Skip these cleaner ids (comma-separated or repeated)
+  -v, --venvs                Python: include marker-verified virtualenvs
+  -m, --modules              Node: include node_modules
+  -u, --retired IDS          Treat these configured tool ids as retired for this run
+  -a, --age DAYS             Minimum idle age for worktrees and retired tools (default from config)
+
+Safety overrides:
+  -D, --include-dirty        UNSAFE: also delete git trees with uncommitted changes, untracked files or an unreachable detached HEAD
+
+Output:
+  -T, --no-tui               Plain-text output instead of the interactive TUI
+  -s, --show-skipped         Show skipped and protected items
+  -g, --group-by MODE        Initial TUI grouping: cleaner or project (default cleaner)
+
+Information:
+  -l, --list-categories      List cleaners and retired tools, then exit
+  -P, --print-config         Print the default config, then exit
+  -M, --print-man            Print the man page (roff), then exit
+  -h, --help                 Print help, then exit
+  -V, --version              Print the version, then exit
+
+Examples:
+  cleanup                         Interactive dry run over ~/Projects
+  cleanup -d -v -m                Review and delete, including venvs and node_modules
+  cleanup -T -d -f -o python,rust Delete Python caches and Rust targets without prompting
+  cleanup -u cursor,zed           Preview leftovers of tools you no longer use
+  cleanup -P > ~/.config/cleanup/config.toml
+  cleanup -M | man -l -
+
+Exit status: 0 success, 1 some deletions failed, 2 usage/config/root error, 130 interrupted.

@@ -29,7 +29,7 @@ bench: ## Run the NFR-1 scan benchmark (slow; not part of check)
 	go test -run '^$$' -bench . -benchtime 1x ./internal/scan/
 
 golden: ## Regenerate golden test files
-	go test ./... -update
+	go test ./cmd/cleanup/ -update
 
 clean: ## Remove build output
 	go clean

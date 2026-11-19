@@ -1,0 +1,16 @@
+cleanup dry run: $ROOT
+
+Python (1 item, 10 B)
+  py/__pycache__                                           10 B
+
+Node (1 item, 2 B)
+  web/dist                                                  2 B
+
+Rust (1 item, 5 B)
+  rs/target                                                 5 B
+
+Skipped and protected (1)
+  web/build                                          protected: tracked files
+
+3 items eligible, 17 B reclaimable; 1 skipped or protected.
+Dry run: nothing was deleted. Re-run with -d to delete.

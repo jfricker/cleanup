@@ -24,6 +24,7 @@
 - [x] 6. match + worktrees: category visitor (names/globs, any-of sibling/ancestor/self markers, opt-ins, per-category prune), retired visitor (only retired or `--retired` tools, age gate carried), worktree provider (in-root candidates, outside-root list, prunable repos). Rule matrix, AC-R4 matcher side, AC-C1 candidate side pass.
 - [x] 7. safety: unexported `Target`, fail-closed `Inspect` pipeline (containment, subtree scan, batched tracked check, GIT-2/3/5 per tree, AGE-1/2), `Reconcile`, revalidating `Delete` through `os.Root`, NFR-4 source scan (probe-verified). AC-R1–R4, AC-G1 (inspection level), AC-G3–G5, AC-G8, AC-G10, AC-C1, AC-C2, AC-C4, AC-D4, AC-E2 pass. Additions within spec intent: a candidate containing a non-`.git` never-touch entry (e.g. `.wrangler`) is skipped; an invalid strategy is skipped.
 - [x] 8. scan + runlog + execute: `scan.Run` (walk → dedup → worktrees → batched tracked → inspector pool → Reconcile, throttled progress), `runlog` (XDG path, 0700/0600 JSONL), `execute.Runner` (soft/hard contexts, worktrees-then-deepest order, nested bytes counted once, prune after loop even when interrupted). AC-D1, AC-D2, AC-D3, scan cancel with goleak pass.
+- [x] 9. cli + plain + main: flag table drives parsing, grouped help and man page; hidden `-y` error; positional ROOT kept for gleanup parity; ID and `--age` validation; exit codes 0/1/2/130; two-stage signal handling; plain renderer; run log opened before any deletion. AC-L1, AC-L2 (golden), end-to-end R1–R5 with `--delete --force`, AC-F3 via binary pass. Dry run over ~/Projects: 9 s, 195 eligible / 38 skipped-or-protected, all skips conservative.
 
 ## Design invariants (regression guards)
 
@@ -36,6 +37,8 @@
 ## Open items carried into plan.md
 
 <!-- written by implement-plan/execute-tests; resolved with the operator by wrapup -->
+
+- SwiftPM `.build` dirs are skipped when `.build/checkouts/*` clones have local branches not on a remote (seen on ~/Projects). Safe but over-conservative; a future cycle could treat package-manager checkouts as regenerable.
 
 ## Verified facts (do not re-investigate)
 

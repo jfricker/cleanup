@@ -1,0 +1,27 @@
+Cleaners:
+  python           on   Python: Regenerable Python caches and marker-verified virtualenvs
+  node             on   Node: Regenerable Node/JS/TS framework caches, build outputs and node_modules
+  rust             on   Rust: Cargo target/ build directories next to Cargo.toml
+  swift            on   Swift / Xcode: SwiftPM .build/.swiftpm and local DerivedData directories
+  gradle           on   Gradle / Android: Gradle caches and project build directories
+  cmake            on   CMake: CMake build trees verified by CMakeCache.txt
+  test-artifacts   on   Test Reports: Playwright and JS test/coverage output directories
+  macos            off  macOS Metadata: Finder .DS_Store and AppleDouble ._* files (opt in with -o macos)
+  worktrees        on   Git Worktrees: Stale registered git worktrees under the scan root, and gone worktree entries (age 30d)
+  retired          on   Retired Tools: Leftovers of dev tools you have marked as retired
+
+Retired tools (scanned only when retired = true or listed with -u):
+  orca       retired=no  age=30d  .orca
+  cursor     retired=yes age=30d  .cursor, .cursorrules, .cursorignore, .cursorindexingignore
+  zed        retired=no  age=30d  .zed
+  pi         retired=no  age=30d  .pi
+  windsurf   retired=no  age=30d  .windsurf, .windsurfrules
+  aider      retired=no  age=30d  .aider.chat.history.md, .aider.input.history, .aider.conf.yml, .aider.tags.cache.*
+  cline      retired=no  age=30d  .cline, .clinerules
+  roo        retired=no  age=30d  .roo, .roorules
+  continue   retired=no  age=30d  .continue
+  fleet      retired=no  age=30d  .fleet
+  sublime    retired=no  age=30d  *.sublime-workspace
+
+Config: $CONFIG
+Git: $GIT

@@ -1,0 +1,120 @@
+.TH CLEANUP 1 "2026-11-19" "cleanup 0.1.0-dev" "User Commands"
+.SH NAME
+cleanup \- reclaim disk space from dev artifacts, stale worktrees and retired tools without deleting work
+.SH SYNOPSIS
+\fBcleanup\fR [\fIOPTIONS\fR] [\fIROOT\fR]
+.SH DESCRIPTION
+\fBcleanup\fR scans one root (default \fI~/Projects\fR) once, proposes regenerable build artifacts, stale linked git worktrees and leftovers of tools you have marked as retired, and inspects every candidate before anything can be deleted. It runs as a dry run unless \fB\-d\fR is given.
+.SH MODE
+.TP
+\fB\-n\fR, \fB\-\-dry\-run\fR
+Preview only; delete nothing (default; the last of \-n/\-d wins)
+.TP
+\fB\-d\fR, \fB\-\-delete\fR
+Delete selected items (needs TUI confirmation or \-f/\-\-force)
+.TP
+\fB\-f\fR, \fB\-\-force\fR
+Skip the TUI and confirmation when deleting
+.SH SELECTION
+.TP
+\fB\-r\fR, \fB\-\-root\fR \fIDIR\fR
+Directory to scan (default ~/Projects)
+.TP
+\fB\-c\fR, \fB\-\-config\fR \fIFILE\fR
+Config file merged over the defaults (default ~/.config/cleanup/config.toml)
+.TP
+\fB\-o\fR, \fB\-\-only\fR \fIIDS\fR
+Run only these cleaner ids (comma\-separated or repeated)
+.TP
+\fB\-x\fR, \fB\-\-exclude\fR \fIIDS\fR
+Skip these cleaner ids (comma\-separated or repeated)
+.TP
+\fB\-v\fR, \fB\-\-venvs\fR
+Python: include marker\-verified virtualenvs
+.TP
+\fB\-m\fR, \fB\-\-modules\fR
+Node: include node_modules
+.TP
+\fB\-u\fR, \fB\-\-retired\fR \fIIDS\fR
+Treat these configured tool ids as retired for this run
+.TP
+\fB\-a\fR, \fB\-\-age\fR \fIDAYS\fR
+Minimum idle age for worktrees and retired tools (default from config)
+.SH SAFETY OVERRIDES
+.TP
+\fB\-D\fR, \fB\-\-include\-dirty\fR
+UNSAFE: also delete git trees with uncommitted changes, untracked files or an unreachable detached HEAD
+.SH OUTPUT
+.TP
+\fB\-T\fR, \fB\-\-no\-tui\fR
+Plain\-text output instead of the interactive TUI
+.TP
+\fB\-s\fR, \fB\-\-show\-skipped\fR
+Show skipped and protected items
+.TP
+\fB\-g\fR, \fB\-\-group\-by\fR \fIMODE\fR
+Initial TUI grouping: cleaner or project (default cleaner)
+.SH INFORMATION
+.TP
+\fB\-l\fR, \fB\-\-list\-categories\fR
+List cleaners and retired tools, then exit
+.TP
+\fB\-P\fR, \fB\-\-print\-config\fR
+Print the default config, then exit
+.TP
+\fB\-M\fR, \fB\-\-print\-man\fR
+Print the man page (roff), then exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help, then exit
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print the version, then exit
+.SH SAFETY
+Every candidate passes one inspection step that fails closed: any error skips the item.
+.IP \(bu 2
+Git\-tracked files are never deleted.
+.IP \(bu 2
+A git tree is skipped when it has uncommitted changes, untracked files, an unreachable detached HEAD,
+lock state, or (in full clones) stashes or commits on no remote. Ignored files are listed but do not block.
+.IP \(bu 2
+A folder that contains a skipped or protected item is itself skipped.
+.IP \(bu 2
+Symlinks are never followed; nothing outside the canonical root is touched. \fI/\fR, the home directory and
+its ancestors, \fI~/Documents\fR, \fI~/Desktop\fR, \fI~/Downloads\fR, \fI~/Library\fR (iCloud, CloudStorage)
+and system folders are refused as roots.
+.IP \(bu 2
+Git runs with fsmonitor, hooks and filter drivers disabled and a scrubbed environment.
+.IP \(bu 2
+Each item is re\-checked immediately before deletion.
+.SH CONFIGURATION
+Defaults are built in. \fI$XDG_CONFIG_HOME/cleanup/config.toml\fR (default \fI~/.config/cleanup/config.toml\fR)
+or \fB\-c\fR \fIFILE\fR is merged over them. The file must contain \fBversion = 1\fR; unknown keys and
+over\-broad patterns are errors. Start from \fBcleanup \-P\fR.
+.SH FILES
+.TP
+\fI$XDG_STATE_HOME/cleanup/runs.jsonl\fR
+Append\-only log of every \fB\-d\fR run (default \fI~/.local/state/cleanup/runs.jsonl\fR).
+.SH EXIT STATUS
+.TP
+\fB0\fR
+Success, including a dry run.
+.TP
+\fB1\fR
+One or more deletions failed.
+.TP
+\fB2\fR
+Usage, config or root\-guard error.
+.TP
+\fB130\fR
+Interrupted.
+.SH EXAMPLES
+.TP
+\fBcleanup\fR
+Interactive dry run over \fI~/Projects\fR.
+.TP
+\fBcleanup \-d \-v \-m\fR
+Review and delete, including virtualenvs and \fInode_modules\fR.
+.TP
+\fBcleanup \-T \-d \-f \-o python,rust\fR
+Delete Python caches and Rust targets without prompting.

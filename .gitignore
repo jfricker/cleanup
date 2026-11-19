@@ -31,3 +31,4 @@ dist/
 /bin/
 *.test
 *.out
+.e2e-tmp/
