@@ -17,6 +17,7 @@
 
 - [x] 0. Scaffold and gate (`go.mod`, Makefile, tools pinned: staticcheck v0.8.2, govulncheck v1.9.0). Deviation: `.metaproject.json` lint is `make lint`, not `make check` (the edit hook's 60 s timeout and govulncheck's network access make `check` unsuitable per edit).
 - [x] 1. Test fixtures (`internal/testfix`): scrubbed git env, backdating, builders for R1–R5, each GIT-2 condition, linked/unpushed, stash+worktree, hostile fsmonitor/filter, newline path, outside worktree/symlink.
+- [x] 2. gitx: hardened runner (env scrub, -c flags, timeout + process-group kill, semaphore), filter neutralisation, porcelain v2 / worktree `-z` parsers with fuzz tests, queries. AC-G1/G2 (runner level), AC-G6, AC-G7, AC-G9 pass.
 
 ## Design invariants (regression guards)
 
