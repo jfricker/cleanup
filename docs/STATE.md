@@ -15,6 +15,8 @@
 
 <!-- written by implement-plan as steps land -->
 
+- [x] 0. Scaffold and gate (`go.mod`, Makefile, tools pinned: staticcheck v0.8.2, govulncheck v1.9.0). Deviation: `.metaproject.json` lint is `make lint`, not `make check` (the edit hook's 60 s timeout and govulncheck's network access make `check` unsuitable per edit).
+
 ## Design invariants (regression guards)
 
 <!-- written by implement-plan/execute-tests; appended to docs/DESIGN-INVARIANTS.md by wrapup -->

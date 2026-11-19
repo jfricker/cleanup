@@ -2,9 +2,20 @@
 
 ## Dev environment tips
 - Makefile is the primary tool for development and testing. Use `make help` to see available targets.
+- Go 1.27, no cgo in the shipped binary (`make build` sets `CGO_ENABLED=0`). Tools
+  (`staticcheck`, `govulncheck`) are pinned as `go.mod` tool directives: run them with
+  `go tool <name>`, never a global install.
+- `make build` → `./cleanup`; `make lint` → gofmt, vet, staticcheck (also run by the
+  metaproject edit hook); `make test` → `go test -race`; `make bench` → scan benchmark.
+- Git fixtures run real `git` in `t.TempDir()`; worktree operations may need to run
+  outside the sandbox.
+- Safety rule: only `internal/safety` may remove files (`os.Remove*`, `os.Root.Remove*`).
+  A test enforces this.
 
 ## Testing instructions
-- Quality gate before any commit: `<quality gate, e.g. make format && make lint && make test>`.
+- Quality gate before any commit: `make check` (gofmt, vet, staticcheck, race tests,
+  govulncheck, `go mod tidy` diff). `govulncheck` needs network access.
+- Acceptance criteria from `docs/SPEC.md` are named tests (`TestAC_R1_...`).
 
 ## Process
 This process is based on https://claude.com/blog/the-ai-native-sdlc-playbook with modifications. This document adds to the playbook and merges ideas. It doesn't supersede the playbook unless explicitly stated.
