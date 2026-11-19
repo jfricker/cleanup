@@ -22,10 +22,15 @@
 - [x] 4. rootguard: canonical root, home from the password database, exact/subtree refusal rules (macOS + Linux), opens `*os.Root`. AC-C3 passes. Note: macOS temp dirs (`/private/var/...`) are refused by default, so tests pass `Options{SystemRules: []Rule{}}` and end-to-end binary tests must create roots outside `/private` (e.g. under the repo).
 - [x] 5. walk: parallel single traversal, per-visitor descend masks (a prune or candidate stops only that visitor), ancestor-marker bitset, enclosing git tree, device check, unreadable dirs recorded, ReadDir counter. AC-W1 passes.
 - [x] 6. match + worktrees: category visitor (names/globs, any-of sibling/ancestor/self markers, opt-ins, per-category prune), retired visitor (only retired or `--retired` tools, age gate carried), worktree provider (in-root candidates, outside-root list, prunable repos). Rule matrix, AC-R4 matcher side, AC-C1 candidate side pass.
+- [x] 7. safety: unexported `Target`, fail-closed `Inspect` pipeline (containment, subtree scan, batched tracked check, GIT-2/3/5 per tree, AGE-1/2), `Reconcile`, revalidating `Delete` through `os.Root`, NFR-4 source scan (probe-verified). AC-R1–R4, AC-G1 (inspection level), AC-G3–G5, AC-G8, AC-G10, AC-C1, AC-C2, AC-C4, AC-D4, AC-E2 pass. Additions within spec intent: a candidate containing a non-`.git` never-touch entry (e.g. `.wrangler`) is skipped; an invalid strategy is skipped.
 
 ## Design invariants (regression guards)
 
 <!-- written by implement-plan/execute-tests; appended to docs/DESIGN-INVARIANTS.md by wrapup -->
+
+- Only `internal/safety` removes files; `TestNFR4_OnlySafetyDeletes` enforces it.
+- `safety.Target` has no exported constructor; only `Inspect` builds one, and `Reconcile` clears it from any parent of a skipped/protected item.
+- Every inspection error yields `skipped(inspection failed)`; no error path yields eligible.
 
 ## Open items carried into plan.md
 
