@@ -1,0 +1,7 @@
+{
+  "author": "John Fricker",
+  "created": "2026-11-19",
+  "description": "Safe, clean Go CLI/TUI that reclaims disk space from dev artifacts, stale worktrees, and defunct tool leftovers under ~/Projects",
+  "metaproject_version": "0.9.1",
+  "title": "cleanup"
+}
