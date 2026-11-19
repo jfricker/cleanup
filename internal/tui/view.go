@@ -136,13 +136,20 @@ func (a *App) renderRow(p palette, i, w int) string {
 			sel = fmt.Sprintf(" %d/%d selected", nsel, len(r.items))
 		}
 		line = fmt.Sprintf("%s %s (%d, %s)%s", arrow, r.label, len(r.items), plain.Bytes(size), sel)
-		line = lipgloss.NewStyle().Bold(true).Render(fit(line, w-1))
+		line = fit(line, w-1)
+		if !cursor {
+			line = lipgloss.NewStyle().Bold(true).Render(line)
+		}
 	} else {
 		v := a.verdicts[r.idx]
 		glyph, st := a.glyph(p, r.idx, v)
+		glyph = padRight(glyph, 4)
+		if cursor {
+			st = lipgloss.NewStyle() // the row highlight carries the colour
+		}
 		size := plain.Bytes(v.Size)
-		name := fit(v.Candidate.Rel, w-len(size)-10)
-		line = fmt.Sprintf("  %s %s %s", st.Render(glyph), padRight(name, w-len(size)-9), size)
+		name := fit(v.Candidate.Rel, w-len(size)-11)
+		line = fmt.Sprintf("  %s %s %s", st.Render(glyph), padRight(name, w-len(size)-11), size)
 	}
 	if cursor {
 		return lipgloss.NewStyle().Background(p.sel).Foreground(p.selFg).Render(padRight("›"+line, w))
@@ -194,7 +201,7 @@ func (a *App) detailText(p palette, w int) string {
 		muted.Render("size     ")+plain.Bytes(v.Size),
 		muted.Render("age      ")+fmt.Sprintf("%dd", int(v.Age.Hours()/24)),
 		muted.Render("cleaner  ")+c.CleanerLabel+" / "+c.Group,
-		muted.Render("path     ")+wrap(c.Path, w-9),
+		muted.Render("path     ")+hardWrap(c.Path, w-9, 9),
 	)
 	if c.Note != "" {
 		lines = append(lines, muted.Render("about    ")+wrap(c.Note, w-9))
@@ -217,9 +224,16 @@ func (a *App) footer(p palette) string {
 		return lipgloss.NewStyle().Foreground(p.accent).Render("filter: "+a.filter+"▏") + muted.Render("  enter apply · esc clear")
 	}
 	keys := "↑↓ move · ←→ fold · g group · / filter · i detail · q quit"
+	if a.Width < 100 {
+		keys = "↑↓ ←→ · g group · / find · i info · q quit"
+	}
 	status := fmt.Sprintf("%d eligible", a.eligibleCount())
 	if a.Opts.Delete {
-		keys = "space select · a all · n none · d delete · " + keys
+		if a.Width < 100 {
+			keys = "spc select · a all · d delete · / find · i info · q quit"
+		} else {
+			keys = "space select · a all · n none · d delete · " + keys
+		}
 		status = fmt.Sprintf("%d selected, %s", len(a.Selected()), plain.Bytes(a.SelectedSize()))
 	}
 	if a.filter != "" {
@@ -335,6 +349,24 @@ func fit(s string, w int) string {
 		r = r[:len(r)-1]
 	}
 	return string(r) + "…"
+}
+
+// hardWrap breaks s into lines of at most w cells, indenting continuation lines.
+func hardWrap(s string, w, indent int) string {
+	if w < 10 {
+		return s
+	}
+	var lines []string
+	r := []rune(s)
+	for len(r) > 0 {
+		n := 0
+		for n < len(r) && lipgloss.Width(string(r[:n+1])) <= w {
+			n++
+		}
+		lines = append(lines, string(r[:n]))
+		r = r[n:]
+	}
+	return strings.Join(lines, "\n"+strings.Repeat(" ", indent))
 }
 
 // truncLeft keeps the end of s (useful for paths).

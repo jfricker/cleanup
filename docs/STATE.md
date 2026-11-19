@@ -7,7 +7,7 @@
 - [x] 2. generate-spec: spec.md approved
 - [x] 3. generate-design: design.md approved
 - [x] 4. generate-plan: plan.md approved
-- [ ] 5. implement-plan: code and tests written
+- [x] 5. implement-plan: code and tests written
 - [ ] 6. execute-tests: tests passing
 - [ ] 7. wrapup: cycle archived
 
@@ -26,6 +26,7 @@
 - [x] 8. scan + runlog + execute: `scan.Run` (walk → dedup → worktrees → batched tracked → inspector pool → Reconcile, throttled progress), `runlog` (XDG path, 0700/0600 JSONL), `execute.Runner` (soft/hard contexts, worktrees-then-deepest order, nested bytes counted once, prune after loop even when interrupted). AC-D1, AC-D2, AC-D3, scan cancel with goleak pass.
 - [x] 9. cli + plain + main: flag table drives parsing, grouped help and man page; hidden `-y` error; positional ROOT kept for gleanup parity; ID and `--age` validation; exit codes 0/1/2/130; two-stage signal handling; plain renderer; run log opened before any deletion. AC-L1, AC-L2 (golden), end-to-end R1–R5 with `--delete --force`, AC-F3 via binary pass. Dry run over ~/Projects: 9 s, 195 eligible / 38 skipped-or-protected, all skips conservative.
 - [x] 10. tui: pure `App` state machine (five phases, cleaner/project grouping, filter, detail pane, eligible-only selection with noted items not preselected, Cancel-focused confirm, soft/hard Ctrl+C in Deleting), Bubble Tea v2.1.1 + Lip Gloss v2.0.6 adapter using `Program.Send`, light/dark palette via `LightDark` plus glyphs. AC-T1, AC-T2, headless quit-during-scan goleak test, 80/160-column width checks pass. TUI tests use a real scan so no Target can be fabricated.
+- [x] 11. bench + visual checks + README: `make bench` (cached fixture, 300 repos, 30 × 20k-file `node_modules`, `-m -v`) → 7.6 s/scan, 1.4× `find -type d` on this Mac (NFR-1 ≤ 15 s and ≤ 2× met). AC-T3: HTML snapshots of review/confirm/deleting/skipped at 80 and 160 columns in light and dark, reviewed in Chrome; fixed cursor-row highlight, glyph alignment, detail path wrapping and the 80-column footer. Not checked in a real terminal emulator. README rewritten.
 
 ## Design invariants (regression guards)
 
