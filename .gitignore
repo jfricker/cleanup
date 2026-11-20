@@ -32,3 +32,6 @@ dist/
 *.test
 *.out
 .e2e-tmp/
+
+# Development tools
+.serena
