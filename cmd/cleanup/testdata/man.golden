@@ -1,4 +1,4 @@
-.TH CLEANUP 1 "2026-11-19" "cleanup 0.1.0-dev" "User Commands"
+.TH CLEANUP 1 "2026-11-19" "cleanup dev" "User Commands"
 .SH NAME
 cleanup \- reclaim disk space from dev artifacts, stale worktrees and retired tools without deleting work
 .SH SYNOPSIS

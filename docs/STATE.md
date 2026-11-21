@@ -14,7 +14,7 @@
 ## Implementation phases
 
 <!-- written by implement-plan as steps land -->
-- [ ] 1. Module rename
+- [x] 1. Module rename (bf88081)
 - [ ] 2. Guards and version
 - [ ] 3. rootguard helpers
 - [ ] 4. Config schema

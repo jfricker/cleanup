@@ -99,15 +99,16 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "cleanup: %v\nRun 'cleanup --help' for usage.\n", err)
 		return exitUsage
 	}
+	ver := currentVersion()
 	switch {
 	case opts.Help:
-		cli.Help(stdout, version)
+		cli.Help(stdout, ver)
 		return exitOK
 	case opts.Version:
-		fmt.Fprintf(stdout, "cleanup %s\n", version)
+		fmt.Fprintf(stdout, "cleanup %s\n", ver)
 		return exitOK
 	case opts.PrintMan:
-		fmt.Fprint(stdout, cli.Man(version, manDate))
+		fmt.Fprint(stdout, cli.Man(ver, manDate))
 		return exitOK
 	case opts.PrintConfig:
 		_, _ = stdout.Write(config.Defaults())

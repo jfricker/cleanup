@@ -1,4 +1,4 @@
-cleanup 0.1.0-dev: reclaim disk space from regenerable dev artifacts, stale git
+cleanup dev: reclaim disk space from regenerable dev artifacts, stale git
 worktrees and retired tools' leftovers, without deleting work.
 
 Usage: cleanup [OPTIONS] [ROOT]
