@@ -2,47 +2,93 @@
 
 Developers and experimenters during the Age of Agents are creating gigabytes of flotsdam in the projects. Cleanup is a CLI and TUI to help reclaim diskspace by finding leftovers from tools you no longer use, stale worktrees, and recreatable build artifacts.
 
-![cleanup-demo](https://user-images.githubusercontent.com/tbd)
+## Install
 
-## Features
+### With Go
 
-## Install with go (quickest)
-
-If you have a [Go environment](https://go.dev/doc/install) configured, the
-fastest way is to install a version directly from releases. Check the [Releases
-page](https://github.com/digitalocean/doctl/releases) for the latest `-beta`
-tag and use it in place of `v<version>-beta.<n>`:
-
-```
-go install github.com/digitalocean/doctl/cmd/doctl@v0.1
+```bash
+go install github.com/jfricker/cleanup/cmd/cleanup@latest
 ```
 
-This drops the `doctl` binary in `$(go env GOPATH)/bin`; make sure that
-directory is on your `PATH`.
+The binary lands in `$GOBIN` if set, otherwise `$(go env GOPATH)/bin`. Make sure that
+directory is on your `PATH`:
 
-### Pre-Compiled binary
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
 
-You can also download the binary for your operating system directly from the [Releases page](https://github.com/jfricker/cleanup/releases).
-
-### from source
+From a clone:
 
 ```bash
 git clone https://github.com/jfricker/cleanup
 cd cleanup
-make install
+go install ./cmd/cleanup
 ```
 
-## Quick Start
+### Release download
+
+Download the archive for your OS and architecture
+(`cleanup_<version>_<os>_<arch>.tar.gz`) and `checksums.txt` from the
+[Releases page](https://github.com/jfricker/cleanup/releases), then verify and unpack:
+
 ```bash
-make build
-./cleanup --init
-./cleanup            # interactive dry run over [Your Project Root]
-./cleanup -d         # review, select and confirm deletions
-./cleanup -T -s      # plain-text dry run, including skipped items
+shasum -a 256 -c checksums.txt --ignore-missing
+tar xzf cleanup_<version>_<os>_<arch>.tar.gz
 ```
 
-`make help` lists the development targets. `./cleanup --help` lists every flag and
-`./cleanup -M | man -l -` shows the man page.
+On macOS, clear the quarantine flag so Gatekeeper lets the binary run:
+
+```bash
+xattr -d com.apple.quarantine ./cleanup
+```
+
+Move `cleanup` somewhere on your `PATH`. The archive also holds `README.md` and the man
+page `cleanup.1`.
+
+### Man page
+
+```bash
+cleanup -M | mandoc -a       # from the binary (macOS)
+cleanup -M | man -l -        # from the binary (Linux)
+man ./cleanup.1              # from a release archive
+```
+
+### Removal
+
+Delete the binary. Config in `~/.config/cleanup` and the run log in
+`~/.local/state/cleanup` are left in place; remove them yourself if you want them gone.
+
+## First run and `--init`
+
+The first interactive run with no config file at `~/.config/cleanup/config.toml` starts
+onboarding instead of scanning: it asks for your project root, lets you protect
+directories, and lists tools you can mark as retired, then writes the config and exits.
+It never deletes anything. Non-interactive runs never prompt; they print one stderr
+line, `cleanup: no config yet; run "cleanup --init" to set your project root and
+retired tools`, and carry on with defaults.
+
+Re-run onboarding any time with `cleanup --init`, pre-filled from your existing config.
+It needs an interactive terminal and combines only with `-c FILE` (target config),
+`-r DIR` (pre-fill the root) and `-T` (plain-text prompts). Esc or Ctrl+C cancels
+without writing anything.
+
+Config keys it manages:
+
+- `project_root` — directory to scan when no `-r` or positional root is given
+  (default `~/Projects`). A missing or refused root is an error, not a fallback.
+- `protected_paths` — directories, relative to the root, that are never walked,
+  proposed or deleted. `cleanup -l` shows the root, its source and protected paths.
+
+## Quick start
+
+```bash
+cleanup --init
+cleanup              # interactive dry run over your project root
+cleanup -d           # review, select and confirm deletions
+cleanup -T -s        # plain-text dry run, including skipped items
+```
+
+`cleanup --help` lists every flag.
 
 ## Usage
 

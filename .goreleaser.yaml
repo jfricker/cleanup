@@ -1,0 +1,34 @@
+version: 2
+
+before:
+  hooks:
+    - sh -c 'mkdir -p dist-extra && go run -ldflags "-X main.version={{ .Tag }}" ./cmd/cleanup -M > dist-extra/cleanup.1'
+
+builds:
+  - id: cleanup
+    main: ./cmd/cleanup
+    binary: cleanup
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Tag }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "cleanup_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - src: README.md
+        strip_parent: true
+      - src: dist-extra/cleanup.1
+        strip_parent: true
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  disable: true

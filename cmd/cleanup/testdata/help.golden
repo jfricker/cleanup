@@ -42,6 +42,6 @@ Examples:
   cleanup -T -d -f -o python,rust Delete Python caches and Rust targets without prompting
   cleanup -u cursor,zed           Preview leftovers of tools you no longer use
   cleanup -P > ~/.config/cleanup/config.toml
-  cleanup -M | man -l -
+  cleanup -M | mandoc -a          View the man page (Linux: cleanup -M | man -l -)
 
 Exit status: 0 success, 1 some deletions failed, 2 usage/config/root error, 130 interrupted.

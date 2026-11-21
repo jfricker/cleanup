@@ -63,6 +63,18 @@ Each item is re\-checked immediately before deletion.
 Defaults are built in. \fI$XDG_CONFIG_HOME/cleanup/config.toml\fR (default \fI~/.config/cleanup/config.toml\fR)
 or \fB\-c\fR \fIFILE\fR is merged over them. The file must contain \fBversion = 1\fR; unknown keys and
 over\-broad patterns are errors. Start from \fBcleanup \-P\fR.
+.PP
+Two optional top\-level keys are managed by onboarding. \fBproject_root\fR is the directory scanned when no
+\fB\-r\fR or positional root is given (default \fI~/Projects\fR); a missing or refused root is an error,
+not a fallback. \fBprotected_paths\fR is an array of directories relative to the root that are never walked,
+proposed or deleted; \fBcleanup \-l\fR shows the root, its source and the protected paths.
+.SH FIRST RUN
+An interactive run with no config at the default path starts onboarding instead of scanning: it asks for the
+project root, lets you protect directories and lists tools you can mark as retired, writes the config and
+exits without deleting anything. \fBcleanup \-\-init\fR runs the same onboarding on demand, pre\-filled from
+the existing config; it needs an interactive terminal and combines only with \fB\-c\fR, \fB\-r\fR and
+\fB\-T\fR. Non\-interactive runs never prompt; when no config exists they print one line to stderr
+(\fIcleanup: no config yet; run "cleanup \-\-init" ...\fR) and continue with defaults.
 .SH FILES
 .TP
 \fI$XDG_STATE_HOME/cleanup/runs.jsonl\fR
