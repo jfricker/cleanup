@@ -19,7 +19,7 @@ and is logged as JSONL.
 flowchart TD
     main["cmd/cleanup<br/>flags, wiring, signals, exit codes"]
     cli["internal/cli<br/>options, help, man page"]
-    config["internal/config<br/>schema, embedded defaults, load, merge, validate"]
+    config["internal/config<br/>schema, embedded defaults, load, merge, validate, Plan/Write"]
     rootguard["internal/rootguard<br/>canonical root, refusal rules"]
     walk["internal/walk<br/>single parallel traversal"]
     match["internal/match<br/>category + retired-tool matchers"]
@@ -29,10 +29,13 @@ flowchart TD
     scan["internal/scan<br/>orchestrates walk → candidates → verdicts"]
     exec["internal/execute<br/>deletion run, interruption, prune"]
     runlog["internal/runlog<br/>JSONL writer"]
-    plain["internal/plain<br/>non-TTY renderer"]
-    tui["internal/tui<br/>App state + Bubble Tea adapter"]
+    plain["internal/plain<br/>non-TTY renderer, onboarding prompts"]
+    tui["internal/tui<br/>App state + Bubble Tea adapter, onboarding screens"]
+    onboard["internal/onboard<br/>onboarding step model, validation, Changes"]
 
-    main --> cli & config & rootguard & scan & exec & plain & tui
+    main --> cli & config & rootguard & scan & exec & plain & tui & onboard
+    onboard --> rootguard & scan & config
+    plain & tui --> onboard
     scan --> walk & match & wt & safety
     wt --> gitx
     safety --> gitx
@@ -45,3 +48,4 @@ flowchart TD
 | Date | Slug | Summary | Archive |
 |---|---|---|---|
 | 2026-11-19 | 2026-11-19-cleanup-v1-a-safe-clean-go-rebuild-of-the-gleanup-prototype | v1 Go rebuild of the gleanup prototype: fail-closed safety core, hardened git, TUI (Bubble Tea v2) and plain modes, run log, benchmark. | [SPEC](archive/2026-11-19-cleanup-v1-a-safe-clean-go-rebuild-of-the-gleanup-prototype/SPEC.md) · [TECH-DESIGN](archive/2026-11-19-cleanup-v1-a-safe-clean-go-rebuild-of-the-gleanup-prototype/TECH-DESIGN.md) |
+| 2026-11-21 | 2026-11-21-cleanup-v0-0-1-installation-and-first-run-onboarding | v0.0.1: module `github.com/jfricker/cleanup`, version from ldflags/build info, GoReleaser + tag workflow; `project_root` and `protected_paths` (walk prune, inspect verdict, delete-time reload); `--init` and first-run onboarding (TUI + plain) with read-only retired-tool probe and atomic config write. | [SPEC](archive/2026-11-21-cleanup-v0-0-1-installation-and-first-run-onboarding/SPEC.md) · [TECH-DESIGN](archive/2026-11-21-cleanup-v0-0-1-installation-and-first-run-onboarding/TECH-DESIGN.md) |

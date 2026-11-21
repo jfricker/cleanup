@@ -27,3 +27,10 @@ Details in TECH-DESIGN.md "Verified facts".
   `? path` / `! path` records and `# branch.ab +N -M` when an upstream exists.
 - `os.Root.RemoveAll` returns "path escapes from parent" when a parent component was
   swapped for an outside symlink, and removes only the link for a symlink leaf.
+
+## 2026-11-21: cleanup v0.0.1 installation and first-run onboarding ([archive](archive/2026-11-21-cleanup-v0-0-1-installation-and-first-run-onboarding/))
+
+- macOS `/usr/bin/man` has no `-l`; view a page from stdin with `mandoc -a`, or a file with `man ./cleanup.1` (verified 2026-11-21, Darwin 27). Linux uses `man -l -`.
+- `gitx` resolves git from fixed paths (`/usr/bin`, `/opt/homebrew/bin`, `/usr/local/bin`) before PATH, so tests inject `env.GitBin` rather than a PATH wrapper.
+- execute-tests (2026-11-21): `make check` green; `BenchmarkProbe` 0.39 s, `BenchmarkScan` 7.65 s (0.82x find). End-to-end with scratch `XDG_CONFIG_HOME` via a pty: non-TTY hint line, plain `--init -T` (root, protected `keep`, Cursor retired) wrote a strict-valid file, the next dry run used the config root, skipped `keep/`, and listed `old/.cursor`; `-l` showed `Root: … (from config)` and `Protected: keep ok`. Every automated SPEC AC has a `TestAC_*`; AC-T5 is `BenchmarkProbe`.
+- NFR-8 (2026-11-21, darwin/arm64, NFR-1 fixture, `-benchtime 1x`): `BenchmarkProbe` 0.79 s vs `BenchmarkScan` 7.82 s; the probe only matches tool footprints and never inspects artifact trees.
