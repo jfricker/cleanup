@@ -93,3 +93,32 @@ func TestResolveRejectsFile(t *testing.T) {
 		t.Fatal("want error for a file root")
 	}
 }
+
+func TestExpand(t *testing.T) {
+	const home = "/Users/someone"
+	tests := []struct{ in, want string }{
+		{"~", home},
+		{"~/", home},
+		{"~/Projects", home + "/Projects"},
+		{"~/a/b", home + "/a/b"},
+		{"~user/x", "~user/x"},
+		{"/abs/path", "/abs/path"},
+		{"rel/~/x", "rel/~/x"},
+		{"", ""},
+	}
+	for _, tc := range tests {
+		if got := Expand(tc.in, home); got != tc.want {
+			t.Errorf("Expand(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestHome_Absolute(t *testing.T) {
+	h, err := Home()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !filepath.IsAbs(h) {
+		t.Errorf("Home() = %q, want absolute path", h)
+	}
+}

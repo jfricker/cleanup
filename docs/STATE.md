@@ -15,7 +15,7 @@
 
 <!-- written by implement-plan as steps land -->
 - [x] 1. Module rename (bf88081)
-- [ ] 2. Guards and version
+- [x] 2. Guards and version (459eeb3)
 - [ ] 3. rootguard helpers
 - [ ] 4. Config schema
 - [ ] 5. Config writing

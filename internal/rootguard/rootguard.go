@@ -113,6 +113,22 @@ func Check(canon string, rules []Rule) error {
 	return nil
 }
 
+// Home returns the canonical (symlink-resolved) home directory from the password
+// database (SPEC ROOT-2).
+func Home() (string, error) { return homeDir() }
+
+// Expand replaces a leading "~" or "~/" in p with home. Other forms, including
+// "~user/x", are returned unchanged.
+func Expand(p, home string) string {
+	if p == "~" {
+		return home
+	}
+	if strings.HasPrefix(p, "~/") {
+		return filepath.Join(home, p[2:])
+	}
+	return p
+}
+
 func homeDir() (string, error) {
 	u, err := user.Current()
 	if err != nil {
