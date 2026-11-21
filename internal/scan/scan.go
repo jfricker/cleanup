@@ -4,6 +4,7 @@ package scan
 
 import (
 	"context"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -27,8 +28,11 @@ type Options struct {
 	Retired      []string // tool ids treated as retired for this run
 	AgeDays      int      // >0 overrides worktree and retired-tool age gates
 	IncludeDirty bool
-	Workers      int
-	Now          func() time.Time
+	// Protected are root-relative, slash-separated paths the scan never walks into
+	// (PROT-4).
+	Protected []string
+	Workers   int
+	Now       func() time.Time
 }
 
 // Phase names reported in events.
@@ -124,6 +128,7 @@ func Run(ctx context.Context, cfg *config.Config, root rootguard.Root, git *gitx
 		NeverTouch:      cfg.NeverTouch,
 		AncestorMarkers: match.AncestorMarkers(cats),
 		Workers:         o.Workers,
+		Protected:       o.Protected,
 		OnDir: func(rel string) {
 			mu.Lock()
 			dirs++
@@ -149,8 +154,26 @@ func Run(ctx context.Context, cfg *config.Config, root rootguard.Root, git *gitx
 				repos = append(repos, g.Path)
 			}
 		}
+		for _, g := range wres.GitTrees {
+			if g.IsRepo {
+				continue
+			}
+			d, derr := git.Dirs(ctx, g.Path)
+			if derr != nil {
+				res.GitErrors = append(res.GitErrors, worktrees.RepoError{Repo: g.Path, Err: derr})
+				continue
+			}
+			if !d.Linked() || filepath.Base(d.CommonDir) != ".git" {
+				continue
+			}
+			main := filepath.Dir(d.CommonDir)
+			if underProtected(root.Path, main, o.Protected) && !slices.Contains(repos, main) {
+				repos = append(repos, main) // PROT-5
+			}
+		}
+		gitErrs := res.GitErrors
 		wt := worktrees.Find(ctx, git, root.Path, repos, cfg.Worktrees)
-		res.GitErrors, res.PruneRepos = wt.Errors, wt.PruneRepos
+		res.GitErrors, res.PruneRepos = append(gitErrs, wt.Errors...), wt.PruneRepos
 		for _, c := range wt.Outside {
 			res.Outside = append(res.Outside, safety.OutsideRoot(c))
 		}
@@ -275,4 +298,20 @@ func Reclaimable(vs []safety.Verdict) int64 {
 		total += v.Size
 	}
 	return total
+}
+
+// underProtected reports whether path lies at or under one of the root-relative
+// protected paths.
+func underProtected(root, path string, protected []string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
+		return false
+	}
+	rel = filepath.ToSlash(rel)
+	for _, p := range protected {
+		if rel == p || strings.HasPrefix(rel, p+"/") {
+			return true
+		}
+	}
+	return false
 }

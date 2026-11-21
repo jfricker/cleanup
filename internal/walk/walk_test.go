@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 
@@ -182,3 +183,37 @@ func TestCancel(t *testing.T) {
 type visitFunc func(d *Dir, out *Out)
 
 func (f visitFunc) Visit(d *Dir, out *Out) { f(d, out) }
+
+func TestProtectedSubtreeSkipped(t *testing.T) {
+	root := testfix.Root(t)
+	for _, p := range []string{
+		"protected/x/node_modules/a.js",
+		"protected/.git/HEAD",
+		"other/node_modules/a.js",
+		"other/protected/node_modules/a.js",
+		"node_modules/b.js",
+	} {
+		testfix.Write(t, filepath.Join(root, p), "x")
+	}
+	v := &nameVisitor{match: "node_modules"}
+	res := run(t, root, []Visitor{v}, Options{Protected: []string{"protected", "node_modules"}})
+	var got []string
+	for _, f := range res.Found {
+		got = append(got, f.Rel)
+	}
+	if !slices.Equal(got, []string{"other/node_modules", "other/protected/node_modules"}) {
+		t.Fatalf("found %v", got)
+	}
+	for _, s := range v.seen {
+		if s == "protected" || s == "node_modules" || strings.HasPrefix(s, "protected/") {
+			t.Fatalf("visited protected %q", s)
+		}
+	}
+	for _, g := range res.GitTrees {
+		t.Fatalf("git tree under protected: %v", g)
+	}
+	// root, other, other/protected, other/protected/node_modules? (candidate, pruned)
+	if res.Dirs != 3 {
+		t.Fatalf("dirs %d", res.Dirs)
+	}
+}

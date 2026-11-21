@@ -108,8 +108,11 @@ type Options struct {
 	NeverTouch      []string // names never descended into or reported
 	AncestorMarkers []string // names tracked for Dir.HasAncestorMarker (max 64)
 	Workers         int      // concurrent ReadDir calls; GOMAXPROCS when 0
-	OnDir           func(rel string)
-	CountReads      bool // record ReadDir calls per path in Result.Reads
+	// Protected lists root-relative, slash-separated paths that are skipped entirely:
+	// no visitor sees them, the walk never descends into them (PROT-4).
+	Protected  []string
+	OnDir      func(rel string)
+	CountReads bool // record ReadDir calls per path in Result.Reads
 }
 
 // Result is everything a walk produced.
@@ -136,6 +139,12 @@ func Run(ctx context.Context, root string, dev uint64, visitors []Visitor, o Opt
 	if o.CountReads {
 		w.res.Reads = map[string]int{}
 	}
+	if len(o.Protected) > 0 {
+		w.protect = make(map[string]bool, len(o.Protected))
+		for _, p := range o.Protected {
+			w.protect[p] = true
+		}
+	}
 	for _, n := range o.NeverTouch {
 		w.never[n] = true
 	}
@@ -157,6 +166,7 @@ type walker struct {
 	visitors []Visitor
 	o        Options
 	never    map[string]bool
+	protect  map[string]bool
 	sem      chan struct{}
 	wg       sync.WaitGroup
 	dirs     atomic.Int64
@@ -184,6 +194,11 @@ func (w *walker) dir(path, rel string, mask, anc uint64, gitTree string) {
 		return
 	}
 
+	if w.protect != nil {
+		entries = slices.DeleteFunc(slices.Clone(entries), func(e fs.DirEntry) bool {
+			return w.protect[relJoin(rel, e.Name())]
+		})
+	}
 	d := &Dir{Path: path, Rel: rel, Entries: entries, markers: w.o.AncestorMarkers,
 		names: make(map[string]fs.DirEntry, len(entries)), GitTree: gitTree}
 	for _, e := range entries {

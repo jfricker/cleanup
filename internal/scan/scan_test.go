@@ -3,6 +3,7 @@ package scan
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.uber.org/goleak"
@@ -131,5 +132,61 @@ func TestEmitThrottled(t *testing.T) {
 	}
 	if n == 0 || n > 20 {
 		t.Fatalf("emitted %d events", n)
+	}
+}
+
+func TestProtectedPathNotScanned(t *testing.T) {
+	root, git, cfg := setup(t)
+	for _, base := range []string{"protected", "open"} {
+		testfix.Write(t, filepath.Join(root.Path, base, "app/package.json"), "{}")
+		testfix.Write(t, filepath.Join(root.Path, base, "app/node_modules/x/i.js"), "x")
+		testfix.Write(t, filepath.Join(root.Path, base, "app/__pycache__/a.pyc"), "x")
+		testfix.Write(t, filepath.Join(root.Path, base, ".cursor/rules/a.mdc"), "x")
+		testfix.BackdateTree(t, filepath.Join(root.Path, base), 60)
+	}
+	res, err := Run(context.Background(), cfg, root, git, Options{Retired: []string{"cursor"}, Protected: []string{"protected"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var inOpen int
+	for _, v := range res.Verdicts {
+		switch {
+		case strings.HasPrefix(v.Candidate.Rel, "protected"):
+			t.Errorf("protected path reported: %s", v.Candidate.Rel)
+		case strings.HasPrefix(v.Candidate.Rel, "open/"):
+			inOpen++
+		}
+	}
+	if inOpen < 2 {
+		t.Errorf("expected __pycache__ and cursor footprints under open/, got %d: %+v", inOpen, res.Verdicts)
+	}
+}
+
+// PROT-5: a protected repo's stale linked worktree elsewhere under the root is
+// still proposed.
+func TestAC_P6_ProtectedRepoWorktreeElsewhereProposed(t *testing.T) {
+	root, git, cfg := setup(t)
+	repo := testfix.Repo(t, filepath.Join(root.Path, "protected", "repo"))
+	wt := testfix.Worktree(t, repo, filepath.Join(root.Path, "elsewhere", "wt"), "side")
+	testfix.BackdateTree(t, wt, 40)
+	testfix.BackdateTree(t, repo, 40)
+
+	for _, prot := range [][]string{nil, {"protected"}} {
+		res, err := Run(context.Background(), cfg, root, git, Options{Protected: prot}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(res.GitErrors) != 0 {
+			t.Fatalf("git errors: %v", res.GitErrors)
+		}
+		found := false
+		for _, v := range res.Verdicts {
+			if v.Candidate.Path == wt {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("protected=%v: worktree %s not proposed: %+v", prot, wt, res.Verdicts)
+		}
 	}
 }
