@@ -45,11 +45,15 @@ type Outcome struct {
 // Deleter removes verified targets. It is the only code in the program that removes
 // files (SPEC NFR-4).
 type Deleter struct {
-	in *Inspector
+	in        *Inspector
+	protected []string
 }
 
-// NewDeleter returns a deleter that revalidates with in.
-func NewDeleter(in *Inspector) *Deleter { return &Deleter{in: in} }
+// NewDeleter returns a deleter that revalidates with in and refuses any target at,
+// under or containing one of the root-relative protected paths (PROT-6).
+func NewDeleter(in *Inspector, protected []string) *Deleter {
+	return &Deleter{in: in, protected: protected}
+}
 
 // ErrInvalidTarget is returned for a zero Target.
 var ErrInvalidTarget = errors.New("not a verified target")
@@ -95,6 +99,9 @@ func (d *Deleter) Delete(ctx context.Context, t Target) Outcome {
 // revalidate re-checks identity, containment and git state (SPEC DEL-2).
 func (d *Deleter) revalidate(ctx context.Context, v *verified) *Reason {
 	changed := func(detail string) *Reason { return &Reason{Code: ReasonChangedSinceScan, Detail: detail} }
+	if p, hit := protectedMatch(d.protected, v.rel); hit {
+		return &Reason{Code: ReasonProtectedPath, Detail: p}
+	}
 	canon, err := filepath.EvalSymlinks(v.abs)
 	if err != nil {
 		return changed(err.Error())

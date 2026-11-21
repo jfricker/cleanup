@@ -57,6 +57,7 @@ const (
 	ReasonContainsSkipped
 	ReasonContainsNeverTouch
 	ReasonChangedSinceScan
+	ReasonProtectedPath
 )
 
 var reasonText = map[ReasonCode]string{
@@ -75,6 +76,7 @@ var reasonText = map[ReasonCode]string{
 	ReasonContainsSkipped:        "contains skipped item",
 	ReasonContainsNeverTouch:     "contains never-touch path",
 	ReasonChangedSinceScan:       "changed since scan",
+	ReasonProtectedPath:          "protected path",
 }
 
 // Reason is a typed explanation with optional detail.

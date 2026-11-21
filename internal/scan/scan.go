@@ -190,7 +190,7 @@ func Run(ctx context.Context, cfg *config.Config, root rootguard.Root, git *gitx
 		return res, err
 	}
 
-	in := safety.NewInspector(root, git, safety.Config{IncludeDirty: o.IncludeDirty, NeverTouch: cfg.NeverTouch, Now: o.Now})
+	in := safety.NewInspector(root, git, safety.Config{IncludeDirty: o.IncludeDirty, NeverTouch: cfg.NeverTouch, Protected: o.Protected, Now: o.Now})
 	res.Inspector = in
 	emit(Event{Phase: PhaseInspect, Dirs: res.Dirs, Candidates: len(cands)})
 	tracked := in.CheckTracked(ctx, cands)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/jfricker/cleanup/internal/config"
 	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/match"
 	"github.com/jfricker/cleanup/internal/rootguard"
 	"github.com/jfricker/cleanup/internal/safety"
 	"github.com/jfricker/cleanup/internal/testfix"
@@ -188,5 +189,49 @@ func TestAC_P6_ProtectedRepoWorktreeElsewhereProposed(t *testing.T) {
 		if !found {
 			t.Errorf("protected=%v: worktree %s not proposed: %+v", prot, wt, res.Verdicts)
 		}
+	}
+}
+
+// AC-P5: nothing at, under or containing a protected path is ever reported eligible,
+// including a linked worktree sitting under it whose main repo is outside.
+func TestAC_P5_ProtectedPathNothingReported(t *testing.T) {
+	root, git, cfg := setup(t)
+	mainRepo := testfix.Repo(t, filepath.Join(root.Path, "main"))
+	testfix.Commit(t, mainRepo, "old.txt", "x", 40)
+	for _, base := range []string{"protected", "open"} {
+		b := filepath.Join(root.Path, base)
+		testfix.Write(t, filepath.Join(b, "app/package.json"), "{}")
+		testfix.Write(t, filepath.Join(b, "app/node_modules/x/i.js"), "x")
+		testfix.Write(t, filepath.Join(b, "app/__pycache__/a.pyc"), "x")
+		testfix.Write(t, filepath.Join(b, ".cursor/rules/a.mdc"), "x")
+		wt := testfix.Worktree(t, mainRepo, filepath.Join(b, "wt"), "side-"+base)
+		testfix.BackdateTree(t, b, 60)
+		testfix.BackdateTree(t, wt, 40)
+	}
+	testfix.BackdateTree(t, mainRepo, 40) // after the worktrees exist: their admin dirs live here
+	opts := Options{Retired: []string{"cursor"}, OptIns: match.OptIns{Modules: true}}
+	count := func(prot []string, prefix string) int {
+		o := opts
+		o.Protected = prot
+		res, err := Run(context.Background(), cfg, root, git, o, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for _, v := range res.Verdicts {
+			if strings.HasPrefix(v.Candidate.Rel, prefix) && v.Selectable() {
+				n++
+			}
+		}
+		return n
+	}
+	if n := count([]string{"protected"}, "protected"); n != 0 {
+		t.Errorf("%d eligible items under protected/", n)
+	}
+	if n := count([]string{"protected"}, "open"); n < 4 {
+		t.Errorf("open/ with protection: want >=4 eligible (pycache, node_modules, cursor, worktree), got %d", n)
+	}
+	if n := count(nil, "protected"); n < 4 {
+		t.Errorf("unprotected control: want >=4 eligible under protected/, got %d", n)
 	}
 }

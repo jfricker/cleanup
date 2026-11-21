@@ -42,7 +42,7 @@ func newEnvAt(t *testing.T, path string, dirty bool, o gitx.Options) *env {
 		t.Fatal(err)
 	}
 	in := NewInspector(root, git, Config{IncludeDirty: dirty, NeverTouch: []string{".git", ".wrangler"}})
-	return &env{t: t, root: root, git: git, in: in, del: NewDeleter(in)}
+	return &env{t: t, root: root, git: git, in: in, del: NewDeleter(in, nil)}
 }
 
 func (e *env) cand(kind match.Kind, path string, age int) match.Candidate {
@@ -437,5 +437,50 @@ func TestRevalidationCatchesNewWork(t *testing.T) {
 	}
 	if !testfix.Exists(clone) {
 		t.Fatal("deleted despite new work")
+	}
+}
+
+func TestProtectedPathInspect(t *testing.T) {
+	e := newEnv(t, false)
+	e.in.cfg.Protected = []string{"keep/proj"}
+	mk := func(rel string) match.Candidate {
+		p := filepath.Join(e.root.Path, rel)
+		testfix.Write(t, filepath.Join(p, "x"), "x")
+		return e.cand(match.Artifact, p, 0)
+	}
+	wantReason(t, e.inspect(mk("keep/proj"))[0], Protected, ReasonProtectedPath)
+	v := e.inspect(mk("keep/proj/sub/__pycache__"))[0]
+	wantReason(t, v, Protected, ReasonProtectedPath)
+	if v.Reasons[0].String() != "protected path: keep/proj" {
+		t.Fatalf("reason %q", v.Reasons[0])
+	}
+	wantReason(t, e.inspect(mk("keep"))[0], Protected, ReasonProtectedPath)
+	for _, rel := range []string{"keep/proj2", "keep/pro", "other"} {
+		if v := e.inspect(mk(rel))[0]; v.Kind != Eligible {
+			t.Errorf("%s: %v %s", rel, v.Kind, v.ReasonText())
+		}
+	}
+}
+
+func TestProtectedPathRevalidateRefuses(t *testing.T) {
+	e := newEnv(t, false)
+	dir := filepath.Join(e.root.Path, "area", "cache")
+	testfix.Write(t, filepath.Join(dir, "x"), "x")
+	v := e.inspect(e.cand(match.Artifact, dir, 0))[0]
+	tg, ok := v.Target()
+	if !ok {
+		t.Fatal(v.ReasonText())
+	}
+	del := NewDeleter(e.in, []string{"area"})
+	o := del.Delete(context.Background(), tg)
+	if o.Kind != NotDeleted || o.Reason == nil || o.Reason.Code != ReasonProtectedPath {
+		t.Fatalf("outcome %v %v %v", o.Kind, o.Reason, o.Err)
+	}
+	if !testfix.Exists(filepath.Join(dir, "x")) {
+		t.Fatal("protected target was removed")
+	}
+	// A shared name prefix is not protection.
+	if o := NewDeleter(e.in, []string{"ar"}).Delete(context.Background(), tg); o.Kind != Deleted {
+		t.Fatalf("sibling prefix: %v %v", o.Kind, o.Reason)
 	}
 }

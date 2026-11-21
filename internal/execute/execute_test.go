@@ -69,7 +69,7 @@ func (f *fixture) targets(t *testing.T) []safety.Target {
 }
 
 func (f *fixture) runner() Runner {
-	return Runner{Deleter: safety.NewDeleter(f.res.Inspector), Git: f.git, Log: f.log}
+	return Runner{Deleter: safety.NewDeleter(f.res.Inspector, nil), Git: f.git, Log: f.log}
 }
 
 func readLog(t *testing.T, dir string) []runlog.Record {

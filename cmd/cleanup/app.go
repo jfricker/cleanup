@@ -217,7 +217,7 @@ func (s *session) execute(res *scan.Result, selected []safety.Verdict, emit func
 					targets = append(targets, t)
 				}
 			}
-			r := execute.Runner{Deleter: safety.NewDeleter(res.Inspector), Git: s.git, Log: log}
+			r := execute.Runner{Deleter: safety.NewDeleter(res.Inspector, s.cfg.ProtectedPaths), Git: s.git, Log: log}
 			rep := r.Execute(s.signals.Hard, s.signals.Soft, targets, res.PruneRepos, emit)
 			code := exitOK
 			switch {

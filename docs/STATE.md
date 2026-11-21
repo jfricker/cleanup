@@ -19,7 +19,7 @@
 - [x] 3. rootguard helpers (d04e683)
 - [x] 4. Config schema (e74b62e)
 - [x] 5. Config writing (846541f)
-- [ ] 6. Walk and scan protection
+- [x] 6. Walk and scan protection (a1a28b9)
 - [ ] 7. Safety protection
 - [ ] 8. Run-time root, hint and `-l`
 - [ ] 9. Probe

@@ -20,6 +20,7 @@ import (
 type Config struct {
 	IncludeDirty bool     // -D: relax GIT-2 conditions 1, 2 and 4
 	NeverTouch   []string // names that must never be deleted
+	Protected    []string // root-relative, slash-separated protected paths (PROT-4)
 	Now          func() time.Time
 }
 
@@ -106,6 +107,9 @@ func (in *Inspector) Inspect(ctx context.Context, c match.Candidate, tr Tracked)
 	rel, ok := relUnder(in.root.Path, c.Path)
 	if !ok {
 		return protected(c, ReasonOutsideRoot, "")
+	}
+	if p, hit := protectedMatch(in.cfg.Protected, rel); hit {
+		return protected(c, ReasonProtectedPath, p)
 	}
 	if canon, err := filepath.EvalSymlinks(c.Path); err != nil {
 		return skipped(c, ReasonInspectionFailed, "%v", err)
@@ -273,6 +277,17 @@ func relUnder(root, p string) (string, bool) {
 		return "", false
 	}
 	return filepath.ToSlash(r), true
+}
+
+// protectedMatch reports the first protected path that equals rel, contains it, or
+// lies inside it (component-aware: a/b does not match a/bc).
+func protectedMatch(protected []string, rel string) (string, bool) {
+	for _, p := range protected {
+		if rel == p || strings.HasPrefix(rel, p+"/") || strings.HasPrefix(p, rel+"/") {
+			return p, true
+		}
+	}
+	return "", false
 }
 
 func identity(fi os.FileInfo) (uint64, uint64) {
