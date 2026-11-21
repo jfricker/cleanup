@@ -54,6 +54,7 @@ type Options struct {
 	PrintMan       bool
 	Help           bool
 	Version        bool
+	Init           bool
 }
 
 // UsageError is a command-line mistake (exit status 2).
@@ -97,6 +98,7 @@ var flagDefs = []flagDef{
 	{"list-categories", "l", gInfo, "", "List cleaners and retired tools, then exit"},
 	{"print-config", "P", gInfo, "", "Print the default config, then exit"},
 	{"print-man", "M", gInfo, "", "Print the man page (roff), then exit"},
+	{"init", "", gInfo, "", "Run first-time setup (project root, protected directories, retired tools), then exit"},
 	{"help", "h", gInfo, "", "Print help, then exit"},
 	{"version", "V", gInfo, "", "Print the version, then exit"},
 }
@@ -184,6 +186,8 @@ func Parse(args []string) (Options, error) {
 			fs.BoolVarP(&o.PrintConfig, d.name, d.short, false, d.help)
 		case "print-man":
 			fs.BoolVarP(&o.PrintMan, d.name, d.short, false, d.help)
+		case "init":
+			fs.BoolVarP(&o.Init, d.name, d.short, false, d.help)
 		case "help":
 			fs.BoolVarP(&o.Help, d.name, d.short, false, d.help)
 		case "version":
@@ -212,6 +216,21 @@ func Parse(args []string) (Options, error) {
 			return o, usagef("--age must be at least 1 day (retired tools are always age-gated)")
 		}
 		o.AgeDays = age
+	}
+	if o.Init {
+		var bad error
+		fs.Visit(func(f *pflag.Flag) {
+			switch f.Name {
+			case "init", "config", "root", "no-tui":
+			default:
+				if bad == nil {
+					bad = usagef("--init cannot be combined with --%s", f.Name)
+				}
+			}
+		})
+		if bad != nil {
+			return o, bad
+		}
 	}
 	if rest := fs.Args(); len(rest) > 0 {
 		if len(rest) > 1 || o.Root != "" {
@@ -252,6 +271,9 @@ func Help(w io.Writer, version string) {
 				continue
 			}
 			left := fmt.Sprintf("  -%s, --%s", d.short, d.name)
+			if d.short == "" {
+				left = fmt.Sprintf("      --%s", d.name)
+			}
 			if d.arg != "" {
 				left += " " + d.arg
 			}

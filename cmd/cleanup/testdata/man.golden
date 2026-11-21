@@ -65,6 +65,9 @@ Print the default config, then exit
 \fB\-M\fR, \fB\-\-print\-man\fR
 Print the man page (roff), then exit
 .TP
+\fB\-\-init\fR
+Run first\-time setup (project root, protected directories, retired tools), then exit
+.TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help, then exit
 .TP

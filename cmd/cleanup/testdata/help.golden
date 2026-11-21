@@ -32,6 +32,7 @@ Information:
   -l, --list-categories      List cleaners and retired tools, then exit
   -P, --print-config         Print the default config, then exit
   -M, --print-man            Print the man page (roff), then exit
+      --init                 Run first-time setup (project root, protected directories, retired tools), then exit
   -h, --help                 Print help, then exit
   -V, --version              Print the version, then exit
 

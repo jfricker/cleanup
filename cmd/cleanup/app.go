@@ -65,6 +65,9 @@ type env struct {
 	Getenv      func(string) string
 	Executable  func() (string, error)
 	Now         func() time.Time
+	// In-process test seams for onboarding; both are empty in the shipped binary.
+	GitBin string // git binary; "" resolves normally
+	Home   string // home directory; "" uses the password database
 }
 
 // realEnv is the env main passes.
@@ -80,21 +83,28 @@ func realEnv() env {
 type start int
 
 const (
-	startRun  start = iota // run normally
-	startHint              // run normally with defaults, after the TRIG-3 hint
+	startRun         start = iota // run normally
+	startHint                     // run normally with defaults, after the TRIG-3 hint
+	startOnboard                  // --init: onboarding, then exit
+	startOnboardOnly              // TRIG-1: automatic onboarding, then exit (never scans, TRIG-2)
 )
 
 // noConfigHint is the TRIG-3 line.
 const noConfigHint = `cleanup: no config yet; run "cleanup --init" to set your project root and retired tools`
 
-// decideStart picks the start mode. Only the default config path being absent without
-// -c changes anything; -l never hints (TRIG-3). The onboarding cases (interactive, no
-// default config, no -c, none of -f/-T/-l) are folded into startHint until onboarding
-// exists; step 12 adds startOnboard and startOnboardOnly ahead of the hint.
+// decideStart picks the start mode (info flags have already returned). --init always
+// onboards. Otherwise only the default config path being absent without -c changes
+// anything: interactive runs without -f/-T/-P/-M/-l/-h/-V onboard (-d allowed); other
+// runs get the TRIG-3 hint, except -l, which never hints.
 func decideStart(o cli.Options, defaultExists, interactive bool) start {
-	_ = interactive
+	if o.Init {
+		return startOnboard
+	}
 	if o.ConfigPath != "" || defaultExists || o.ListCategories {
 		return startRun
+	}
+	if interactive && !o.Force && !o.NoTUI && !o.PrintConfig && !o.PrintMan && !o.Help && !o.Version {
+		return startOnboardOnly
 	}
 	return startHint
 }
@@ -212,8 +222,16 @@ func run(args []string, e env) int {
 	if cfgPath == "" && defExists {
 		cfgPath = defPath
 	}
-	if decideStart(opts, defExists, e.Interactive()) == startHint {
+	mode := decideStart(opts, defExists, e.Interactive())
+	switch mode {
+	case startHint:
 		fmt.Fprintln(stderr, noConfigHint)
+	case startOnboard, startOnboardOnly:
+		if opts.Init && !e.Interactive() {
+			fmt.Fprintln(stderr, "cleanup: --init needs an interactive terminal")
+			return exitUsage
+		}
+		return runOnboarding(opts, e, defPath, defExists, mode == startOnboardOnly)
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {

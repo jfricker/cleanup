@@ -24,7 +24,7 @@
 - [x] 8. Run-time root, hint and `-l` (3ef8e3a)
 - [x] 9. Probe (809f1e2)
 - [x] 10. Onboarding model (c061935)
-- [ ] 11. Front ends
+- [x] 11. Front ends (e5b2f62)
 - [ ] 12. Wire onboarding
 - [ ] 13. Release files and docs
 

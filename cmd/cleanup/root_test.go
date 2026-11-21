@@ -253,7 +253,11 @@ func TestDecideStart(t *testing.T) {
 		want        start
 	}{
 		{"no default, non-interactive", cli.Options{}, false, false, startHint},
-		{"no default, interactive (onboarding arrives in step 12)", cli.Options{}, false, true, startHint},
+		{"no default, interactive", cli.Options{}, false, true, startOnboardOnly},
+		{"interactive -d still onboards", cli.Options{Mode: cli.Delete}, false, true, startOnboardOnly},
+		{"interactive -f hints", cli.Options{Force: true}, false, true, startHint},
+		{"interactive -T hints", cli.Options{NoTUI: true}, false, true, startHint},
+		{"--init", cli.Options{Init: true}, true, true, startOnboard},
 		{"default exists", cli.Options{}, true, false, startRun},
 		{"explicit -c", cli.Options{ConfigPath: "x"}, false, true, startRun},
 		{"-l never hints", cli.Options{ListCategories: true}, false, false, startRun},

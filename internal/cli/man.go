@@ -26,6 +26,10 @@ func Man(version, date string) string {
 			if d.arg != "" {
 				arg = " \\fI" + d.arg + "\\fR"
 			}
+			if d.short == "" {
+				fmt.Fprintf(&b, ".TP\n\\fB\\-\\-%s\\fR%s\n%s\n", roff(d.name), arg, roff(d.help))
+				continue
+			}
 			fmt.Fprintf(&b, ".TP\n\\fB\\-%s\\fR, \\fB\\-\\-%s\\fR%s\n%s\n", d.short, roff(d.name), arg, roff(d.help))
 		}
 	}
