@@ -1,8 +1,8 @@
 package safety
 
 import (
-	"cleanup/internal/config"
-	"cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/match"
 )
 
 // TargetKind is how a target is removed.

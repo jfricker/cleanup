@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 // nameVisitor records children with a given name and prunes names in prune.

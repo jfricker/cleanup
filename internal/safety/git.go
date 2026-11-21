@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/gitx"
 )
 
 // maxIgnoredListed caps the ignored paths listed in a note (SPEC GIT-3).

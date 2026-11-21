@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"cleanup/internal/config"
-	"cleanup/internal/gitx"
-	"cleanup/internal/rootguard"
-	"cleanup/internal/runlog"
-	"cleanup/internal/safety"
-	"cleanup/internal/scan"
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/rootguard"
+	"github.com/jfricker/cleanup/internal/runlog"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/scan"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 type fixture struct {

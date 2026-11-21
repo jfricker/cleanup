@@ -6,9 +6,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"cleanup/internal/execute"
-	"cleanup/internal/safety"
-	"cleanup/internal/scan"
+	"github.com/jfricker/cleanup/internal/execute"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/scan"
 )
 
 // Deps are the side effects the TUI triggers.

@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"cleanup/internal/config"
-	"cleanup/internal/gitx"
-	"cleanup/internal/match"
-	"cleanup/internal/rootguard"
-	"cleanup/internal/safety"
-	"cleanup/internal/walk"
-	"cleanup/internal/worktrees"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/rootguard"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/walk"
+	"github.com/jfricker/cleanup/internal/worktrees"
 )
 
 // Options select cleaners and tune a scan.

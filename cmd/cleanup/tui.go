@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"cleanup/internal/cli"
-	"cleanup/internal/execute"
-	"cleanup/internal/safety"
-	"cleanup/internal/scan"
-	"cleanup/internal/tui"
+	"github.com/jfricker/cleanup/internal/cli"
+	"github.com/jfricker/cleanup/internal/execute"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/scan"
+	"github.com/jfricker/cleanup/internal/tui"
 )
 
 func init() { runTUI = runInteractive }

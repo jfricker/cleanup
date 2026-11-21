@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"cleanup/internal/execute"
+	"github.com/jfricker/cleanup/internal/execute"
 )
 
 // TestSnapshots writes HTML renderings of each screen at 80 and 160 columns in light

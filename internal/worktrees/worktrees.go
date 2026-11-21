@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"cleanup/internal/config"
-	"cleanup/internal/gitx"
-	"cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/match"
 )
 
 // Result is what the provider found.

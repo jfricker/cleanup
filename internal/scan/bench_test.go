@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"cleanup/internal/config"
-	"cleanup/internal/gitx"
-	"cleanup/internal/match"
-	"cleanup/internal/rootguard"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/rootguard"
 )
 
 // BenchmarkScan measures a dry-run scan over the NFR-1 fixture: 300 repositories and

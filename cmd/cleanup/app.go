@@ -13,16 +13,16 @@ import (
 	"strings"
 	"syscall"
 
-	"cleanup/internal/cli"
-	"cleanup/internal/config"
-	"cleanup/internal/execute"
-	"cleanup/internal/gitx"
-	"cleanup/internal/match"
-	"cleanup/internal/plain"
-	"cleanup/internal/rootguard"
-	"cleanup/internal/runlog"
-	"cleanup/internal/safety"
-	"cleanup/internal/scan"
+	"github.com/jfricker/cleanup/internal/cli"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/execute"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/plain"
+	"github.com/jfricker/cleanup/internal/rootguard"
+	"github.com/jfricker/cleanup/internal/runlog"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/scan"
 )
 
 // Exit codes (SPEC CLI-6).

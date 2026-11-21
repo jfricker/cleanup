@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"cleanup/internal/config"
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 var update = flag.Bool("update", false, "rewrite golden files")

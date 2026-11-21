@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 func mustLoad(t *testing.T, user string) *Config {

@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"cleanup/internal/config"
-	"cleanup/internal/gitx"
-	"cleanup/internal/match"
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 func runner(t *testing.T) *gitx.Runner {

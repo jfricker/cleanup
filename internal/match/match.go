@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"slices"
 
-	"cleanup/internal/config"
-	"cleanup/internal/walk"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/walk"
 )
 
 // Kind is the source of a candidate.

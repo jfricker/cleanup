@@ -1,4 +1,4 @@
-module cleanup
+module github.com/jfricker/cleanup
 
 go 1.27
 

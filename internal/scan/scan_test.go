@@ -7,11 +7,11 @@ import (
 
 	"go.uber.org/goleak"
 
-	"cleanup/internal/config"
-	"cleanup/internal/gitx"
-	"cleanup/internal/rootguard"
-	"cleanup/internal/safety"
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/rootguard"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 func setup(t *testing.T) (rootguard.Root, *gitx.Runner, *config.Config) {

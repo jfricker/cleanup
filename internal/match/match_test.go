@@ -6,9 +6,9 @@ import (
 	"slices"
 	"testing"
 
-	"cleanup/internal/config"
-	"cleanup/internal/testfix"
-	"cleanup/internal/walk"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/walk"
 )
 
 func defaults(t *testing.T) *config.Config {

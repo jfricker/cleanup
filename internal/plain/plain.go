@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"cleanup/internal/execute"
-	"cleanup/internal/safety"
-	"cleanup/internal/scan"
+	"github.com/jfricker/cleanup/internal/execute"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/scan"
 )
 
 // Printer writes plain output.

@@ -10,8 +10,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"cleanup/internal/plain"
-	"cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/plain"
+	"github.com/jfricker/cleanup/internal/safety"
 )
 
 // palette holds colours for one background. State is always also shown by a glyph

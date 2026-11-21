@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"cleanup/internal/config"
-	"cleanup/internal/gitx"
-	"cleanup/internal/match"
-	"cleanup/internal/rootguard"
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/rootguard"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 var ctx = context.Background()

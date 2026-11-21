@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 func newRunner(t *testing.T) *Runner {

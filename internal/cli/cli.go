@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/config"
 )
 
 // Mode is dry run or delete.

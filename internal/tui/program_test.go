@@ -9,9 +9,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"go.uber.org/goleak"
 
-	"cleanup/internal/execute"
-	"cleanup/internal/safety"
-	"cleanup/internal/scan"
+	"github.com/jfricker/cleanup/internal/execute"
+	"github.com/jfricker/cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/scan"
 )
 
 // TUI-5 / AC-T1: quitting during the scan cancels it and leaks no goroutines.

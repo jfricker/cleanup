@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"cleanup/internal/config"
-	"cleanup/internal/execute"
-	"cleanup/internal/gitx"
-	"cleanup/internal/rootguard"
-	"cleanup/internal/scan"
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/execute"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/rootguard"
+	"github.com/jfricker/cleanup/internal/scan"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 // result runs a real scan over a fixture, so the verdicts (and their targets) come

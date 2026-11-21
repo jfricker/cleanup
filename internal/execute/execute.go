@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"cleanup/internal/gitx"
-	"cleanup/internal/runlog"
-	"cleanup/internal/safety"
+	"github.com/jfricker/cleanup/internal/gitx"
+	"github.com/jfricker/cleanup/internal/runlog"
+	"github.com/jfricker/cleanup/internal/safety"
 )
 
 // Item is one target and what happened to it.

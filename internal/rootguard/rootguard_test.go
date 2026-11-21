@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"cleanup/internal/testfix"
+	"github.com/jfricker/cleanup/internal/testfix"
 )
 
 // AC-C3: every refused root is rejected; ordinary project folders are accepted.

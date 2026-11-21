@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"cleanup/internal/match"
+	"github.com/jfricker/cleanup/internal/match"
 )
 
 // VerdictKind classifies an inspected candidate.
