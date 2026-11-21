@@ -207,3 +207,17 @@ func TestConfigErrorsAndRoundTrip(t *testing.T) {
 		t.Fatalf("round trip: %d %s", r.code, r.stderr)
 	}
 }
+
+// Regression: -o worktrees alone used to report nothing for a stale linked worktree
+// that the default run finds.
+func TestOnlyWorktreesReportsWorktree(t *testing.T) {
+	root := e2eRoot(t)
+	repo := testfix.Repo(t, filepath.Join(root, "m"))
+	testfix.Worktree(t, repo, filepath.Join(root, "w"), "b")
+	for _, args := range [][]string{{"-T", "-r", root}, {"-T", "-r", root, "-o", "worktrees"}} {
+		r := runBin(t, args...)
+		if r.code != 0 || !strings.Contains(r.stdout, "1 skipped or protected") {
+			t.Errorf("%v: exit %d\n%s\n%s", args, r.code, r.stdout, r.stderr)
+		}
+	}
+}

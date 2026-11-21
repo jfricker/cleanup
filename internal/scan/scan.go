@@ -121,6 +121,11 @@ func Run(ctx context.Context, cfg *config.Config, root rootguard.Root, git *gitx
 			visitors = append(visitors, rv)
 		}
 	}
+	if active[config.WorktreesID] && len(visitors) == 0 {
+		// The walk only descends while some visitor wants a subtree; worktree discovery
+		// needs it to reach every git tree even when no other cleaner is active.
+		visitors = append(visitors, gitTreeVisitor{})
+	}
 
 	var dirs int64
 	var mu sync.Mutex
@@ -228,6 +233,17 @@ feed:
 	res.Verdicts = safety.Reconcile(verdicts)
 	progress(Event{Phase: PhaseDone, Dirs: res.Dirs, Candidates: len(cands), Inspected: len(cands)}, true)
 	return res, nil
+}
+
+// gitTreeVisitor reports nothing; it keeps the walk descending so that git trees are
+// collected when worktrees is the only active cleaner. It skips .git directories,
+// whose contents never hold a work tree root.
+type gitTreeVisitor struct{}
+
+func (gitTreeVisitor) Visit(d *walk.Dir, out *walk.Out) {
+	if e, ok := d.Entry(".git"); ok && e.IsDir() {
+		out.Prune(".git")
+	}
 }
 
 // dedup keeps one candidate per path, from the cleaner with the lowest sort order

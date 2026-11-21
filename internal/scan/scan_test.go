@@ -235,3 +235,45 @@ func TestAC_P5_ProtectedPathNothingReported(t *testing.T) {
 		t.Errorf("unprotected control: want >=4 eligible under protected/, got %d", n)
 	}
 }
+
+// Regression: with worktrees as the only active cleaner there are no walk visitors,
+// and the walk used to stop at the root, so no repo was found and nothing reported.
+func TestOnlyWorktreesFindsStaleWorktree(t *testing.T) {
+	root, git, cfg := setup(t)
+	repo := testfix.Repo(t, filepath.Join(root.Path, "a", "repo"))
+	wt := testfix.Worktree(t, repo, filepath.Join(root.Path, "b", "wt"), "side")
+	testfix.Write(t, filepath.Join(root.Path, "c/package.json"), "{}")
+	testfix.Write(t, filepath.Join(root.Path, "c/__pycache__/a.pyc"), "x")
+	// A repo under a never_touch name is not walked, so its worktree is not found.
+	hidden := testfix.Repo(t, filepath.Join(root.Path, "keep", "repo"))
+	hiddenWT := testfix.Worktree(t, hidden, filepath.Join(root.Path, "d", "wt"), "hidden")
+	testfix.BackdateTree(t, root.Path, 40)
+	cfg.NeverTouch = append(cfg.NeverTouch, "keep")
+
+	for _, prot := range [][]string{nil, {"b"}} {
+		res, err := Run(context.Background(), cfg, root, git, Options{Only: []string{config.WorktreesID}, Protected: prot}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, v := range res.Verdicts {
+			if v.Candidate.Kind != match.Worktree {
+				t.Errorf("non-worktree candidate %s", v.Candidate.Path)
+			}
+			if v.Candidate.Path == hiddenWT {
+				t.Errorf("worktree of never_touch repo reported: %s", v.Candidate.Path)
+			}
+			got = append(got, v.Candidate.Path)
+		}
+		wantWT := prot == nil
+		hasWT := false
+		for _, v := range res.Verdicts {
+			if v.Candidate.Path == wt && v.Selectable() {
+				hasWT = true
+			}
+		}
+		if hasWT != wantWT {
+			t.Errorf("protected=%v: worktree eligible=%v, want %v; verdicts %v", prot, hasWT, wantWT, got)
+		}
+	}
+}
