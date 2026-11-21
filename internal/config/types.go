@@ -109,10 +109,12 @@ const (
 
 // Config is the validated, merged configuration.
 type Config struct {
-	NeverTouch []string
-	Worktrees  Provider
-	Categories []Category // sorted by SortOrder, then ID
-	Retired    RetiredTools
+	ProjectRoot    string   // tilde-expanded absolute path, "" when unset
+	ProtectedPaths []string // cleaned, slash-separated, root-relative, sorted, unique
+	NeverTouch     []string
+	Worktrees      Provider
+	Categories     []Category // sorted by SortOrder, then ID
+	Retired        RetiredTools
 }
 
 // Provider configures the git worktrees provider.

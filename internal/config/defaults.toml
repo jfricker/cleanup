@@ -6,6 +6,12 @@
 
 version = 1
 
+# Optional: the default scan root, used when -r is not given (absolute, or ~/...).
+# project_root = "~/Projects"
+
+# Optional: root-relative paths (forward slashes) that are never deleted.
+# protected_paths = ["important/keep-me", "work/vendor"]
+
 [global]
 # Directories that are never scanned or deleted. `.git` is always included.
 never_touch = [".git", ".wrangler"]

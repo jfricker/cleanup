@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+
+	"github.com/jfricker/cleanup/internal/rootguard"
 )
 
 //go:embed defaults.toml
@@ -135,6 +137,8 @@ func decode(name string, data []byte) (*rawFile, error) {
 // replace, and a category's rules are replaced only when the user sets them.
 func merge(b, u *rawFile) *rawFile {
 	out := *b
+	setIf(&out.ProjectRoot, u.ProjectRoot)
+	setIf(&out.ProtectedPaths, u.ProtectedPaths)
 	if u.Global != nil && u.Global.NeverTouch != nil {
 		out.Global = &rawGlobal{NeverTouch: u.Global.NeverTouch}
 	}
@@ -242,6 +246,9 @@ func validate(rf *rawFile, name string, blocks []block, isUser bool) (*Config, [
 	v := &validator{file: file, blocks: blocks}
 	cfg := &Config{}
 
+	v.projectRoot(cfg, rf.ProjectRoot)
+	v.protectedPaths(cfg, rf.ProtectedPaths)
+
 	cfg.NeverTouch = slices.Clone(val(val(rf.Global).NeverTouch))
 	for _, n := range cfg.NeverTouch {
 		if err := checkName(n, false); err != nil {
@@ -309,6 +316,79 @@ func validate(rf *rawFile, name string, blocks []block, isUser bool) (*Config, [
 		cfg.Retired.Tools = append(cfg.Retired.Tools, tool)
 	}
 	return cfg, v.errs
+}
+
+// projectRoot validates project_root (PROOT-4): non-empty and absolute after tilde
+// expansion. Existence and rootguard checks are run-time, not load-time.
+func (v *validator) projectRoot(cfg *Config, p *string) {
+	if p == nil {
+		return
+	}
+	raw := *p
+	if raw == "" {
+		v.fail(nil, "project_root", "", "must not be empty")
+		return
+	}
+	exp := raw
+	if raw == "~" || strings.HasPrefix(raw, "~/") {
+		home, err := rootguard.Home()
+		if err != nil {
+			v.fail(nil, "project_root", "", "%q: %v", raw, err)
+			return
+		}
+		exp = rootguard.Expand(raw, home)
+	}
+	if !path.IsAbs(exp) {
+		v.fail(nil, "project_root", "", "%q must be an absolute path (or start with ~/)", raw)
+		return
+	}
+	cfg.ProjectRoot = exp
+}
+
+// protectedPaths validates protected_paths (PROT-3) and collapses duplicates and
+// nested entries to the outermost.
+func (v *validator) protectedPaths(cfg *Config, ps *[]string) {
+	if ps == nil {
+		return
+	}
+	var clean []string
+	for _, e := range *ps {
+		c, err := checkProtected(e)
+		if err != nil {
+			v.fail(nil, "protected_paths", "", "%q: %v", e, err)
+			continue
+		}
+		clean = append(clean, c)
+	}
+	slices.Sort(clean)
+	clean = slices.Compact(clean)
+	var out []string
+	for _, c := range clean {
+		if len(out) > 0 && strings.HasPrefix(c, out[len(out)-1]+"/") {
+			continue // nested under an earlier (outer) entry
+		}
+		out = append(out, c)
+	}
+	cfg.ProtectedPaths = out
+}
+
+func checkProtected(e string) (string, error) {
+	switch {
+	case e == "":
+		return "", errors.New("must not be empty")
+	case strings.Contains(e, `\`):
+		return "", errors.New("must use / separators, not backslash")
+	case path.IsAbs(e):
+		return "", errors.New("must be relative to the project root, not absolute")
+	}
+	c := path.Clean(e)
+	if c == "." {
+		return "", errors.New("must name a path below the project root, not the root itself")
+	}
+	if slices.Contains(strings.Split(c, "/"), "..") {
+		return "", errors.New("must not escape the project root (no .. components)")
+	}
+	return c, nil
 }
 
 func (v *validator) category(id string, rc *rawCategory) Category {

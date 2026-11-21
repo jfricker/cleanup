@@ -4,11 +4,13 @@ package config
 // file can override individual fields of the defaults.
 
 type rawFile struct {
-	Version    *int                    `toml:"version"`
-	Global     *rawGlobal              `toml:"global"`
-	Providers  *rawProviders           `toml:"providers"`
-	Categories map[string]*rawCategory `toml:"categories"`
-	Retired    *rawRetired             `toml:"retired_tools"`
+	Version        *int                    `toml:"version"`
+	ProjectRoot    *string                 `toml:"project_root"`
+	ProtectedPaths *[]string               `toml:"protected_paths"`
+	Global         *rawGlobal              `toml:"global"`
+	Providers      *rawProviders           `toml:"providers"`
+	Categories     map[string]*rawCategory `toml:"categories"`
+	Retired        *rawRetired             `toml:"retired_tools"`
 }
 
 type rawGlobal struct {

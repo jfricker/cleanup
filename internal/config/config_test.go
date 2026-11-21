@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jfricker/cleanup/internal/rootguard"
 	"github.com/jfricker/cleanup/internal/testfix"
 )
 
@@ -224,5 +225,68 @@ func TestParseErrorHasLine(t *testing.T) {
 	msg := loadErr(t, "version = 1\n[global\n")
 	if !strings.HasPrefix(msg, "user.toml:2") && !strings.HasPrefix(msg, "user.toml:3") {
 		t.Fatalf("got %q", msg)
+	}
+}
+
+// AC-P2: a relative project_root is rejected with file and line.
+func TestAC_P2_RelativeProjectRootRejected(t *testing.T) {
+	msg := loadErr(t, "version = 1\nproject_root = \"Projects\"\n")
+	if !strings.Contains(msg, "user.toml:2") || !strings.Contains(msg, "project_root") {
+		t.Fatalf("want file:line and key, got %q", msg)
+	}
+	if !strings.Contains(loadErr(t, "version = 1\nproject_root = \"\"\n"), "user.toml:2") {
+		t.Fatal("empty project_root should fail with a line")
+	}
+	if cfg := mustLoad(t, "version = 1\nproject_root = \"/abs/dir\"\n"); cfg.ProjectRoot != "/abs/dir" {
+		t.Fatalf("ProjectRoot = %q", cfg.ProjectRoot)
+	}
+}
+
+func TestProjectRootTildeExpands(t *testing.T) {
+	home, err := rootguard.Home()
+	if err != nil {
+		t.Skip(err)
+	}
+	cfg := mustLoad(t, "version = 1\nproject_root = \"~/Code\"\n")
+	if want := filepath.Join(home, "Code"); cfg.ProjectRoot != want {
+		t.Fatalf("ProjectRoot = %q, want %q", cfg.ProjectRoot, want)
+	}
+	if def := mustLoad(t, "version = 1\n"); def.ProjectRoot != "" || def.ProtectedPaths != nil {
+		t.Fatalf("unset keys should be empty: %+v %+v", def.ProjectRoot, def.ProtectedPaths)
+	}
+}
+
+// AC-P4: protected_paths validation and collapsing.
+func TestAC_P4_ProtectedPathsValidation(t *testing.T) {
+	for _, bad := range []string{`["/abs"]`, `["../x"]`, `["a/../../b"]`, `[""]`, `["."]`, `["a\\b"]`} {
+		msg := loadErr(t, "version = 1\nprotected_paths = "+bad+"\n")
+		if !strings.Contains(msg, "user.toml:2") || !strings.Contains(msg, "protected_paths") {
+			t.Errorf("%s: want file:line, got %q", bad, msg)
+		}
+	}
+	cfg := mustLoad(t, "version = 1\nprotected_paths = [\"work/keep\", \"a/b/../c/\"]\n")
+	if want := []string{"a/c", "work/keep"}; !slices.Equal(cfg.ProtectedPaths, want) {
+		t.Fatalf("got %v, want %v", cfg.ProtectedPaths, want)
+	}
+	cfg = mustLoad(t, "version = 1\nprotected_paths = [\"a/b/c\", \"a\", \"a\", \"a/b\", \"ab\"]\n")
+	if want := []string{"a", "ab"}; !slices.Equal(cfg.ProtectedPaths, want) {
+		t.Fatalf("collapse: got %v, want %v", cfg.ProtectedPaths, want)
+	}
+}
+
+// AC-K8: the defaults carry commented examples and still round-trip.
+func TestAC_K8_PrintConfigExamples(t *testing.T) {
+	d := string(Defaults())
+	for _, want := range []string{"# project_root = ", "# protected_paths = "} {
+		i := strings.Index(d, want)
+		if i < 0 {
+			t.Fatalf("defaults missing %q", want)
+		}
+		if j := strings.Index(d, "\n["); j >= 0 && i > j {
+			t.Fatalf("%q appears after the first table", want)
+		}
+	}
+	if _, err := LoadBytes("printed.toml", Defaults()); err != nil {
+		t.Fatal(err)
 	}
 }
