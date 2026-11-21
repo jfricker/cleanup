@@ -17,7 +17,7 @@
 - [x] 1. Module rename (bf88081)
 - [x] 2. Guards and version (459eeb3)
 - [x] 3. rootguard helpers (d04e683)
-- [ ] 4. Config schema
+- [x] 4. Config schema (e74b62e)
 - [ ] 5. Config writing
 - [ ] 6. Walk and scan protection
 - [ ] 7. Safety protection

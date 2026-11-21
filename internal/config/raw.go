@@ -41,18 +41,18 @@ type rawCategory struct {
 // rawRule is replaced wholesale when a user sets a category's rules, so its fields
 // need no pointers.
 type rawRule struct {
-	ID                     string   `toml:"id"`
-	Category               string   `toml:"category"`
-	Badge                  string   `toml:"badge"`
-	Kind                   string   `toml:"kind"`
-	Names                  []string `toml:"names"`
-	Globs                  []string `toml:"globs"`
-	OptIn                  string   `toml:"opt_in"`
-	RequireSelfMarkers     []string `toml:"require_self_markers"`
-	RequireSiblingMarkers  []string `toml:"require_sibling_markers"`
-	RequireAncestorMarkers []string `toml:"require_ancestor_markers"`
-	Strategy               string   `toml:"strategy"`
-	Warning                string   `toml:"warning"`
+	ID                     string   `toml:"id,omitempty"`
+	Category               string   `toml:"category,omitempty"`
+	Badge                  string   `toml:"badge,omitempty"`
+	Kind                   string   `toml:"kind,omitempty"`
+	Names                  []string `toml:"names,omitempty"`
+	Globs                  []string `toml:"globs,omitempty"`
+	OptIn                  string   `toml:"opt_in,omitempty"`
+	RequireSelfMarkers     []string `toml:"require_self_markers,omitempty"`
+	RequireSiblingMarkers  []string `toml:"require_sibling_markers,omitempty"`
+	RequireAncestorMarkers []string `toml:"require_ancestor_markers,omitempty"`
+	Strategy               string   `toml:"strategy,omitempty"`
+	Warning                string   `toml:"warning,omitempty"`
 }
 
 type rawRetired struct {
@@ -61,7 +61,7 @@ type rawRetired struct {
 	Description *string   `toml:"description"`
 	AgeDays     *int      `toml:"age_days"`
 	SortOrder   *int      `toml:"sort_order"`
-	Tools       []rawTool `toml:"tools"`
+	Tools       []rawTool `toml:"tools,omitempty"`
 }
 
 type rawTool struct {
