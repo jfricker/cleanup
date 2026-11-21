@@ -64,6 +64,39 @@ func BenchmarkScan(b *testing.B) {
 	b.Logf("dirs=%d verdicts=%d scan=%v find -type d=%v (NFR-1: <=15s and <=2x find)", res.Dirs, len(res.Verdicts), per, findTime)
 }
 
+// BenchmarkProbe measures the step-3 probe over the same fixture (AC-T5).
+func BenchmarkProbe(b *testing.B) {
+	scale := 1.0
+	if s := os.Getenv("CLEANUP_BENCH_SCALE"); s != "" {
+		var err error
+		if scale, err = strconv.ParseFloat(s, 64); err != nil {
+			b.Fatal(err)
+		}
+	}
+	dir := benchFixture(b, scale)
+	root, err := rootguard.Resolve(dir, rootguard.Options{Home: "/nonexistent", SystemRules: []rootguard.Rule{}})
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer root.Close()
+	git, err := gitx.New(gitx.Options{})
+	if err != nil {
+		b.Fatal(err)
+	}
+	cfg, err := config.LoadBytes("", nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for range b.N {
+		if _, err := Probe(context.Background(), cfg, root, git, nil, nil); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	b.Logf("probe=%v (NFR-1 budget: <=15s)", b.Elapsed()/time.Duration(b.N))
+}
+
 func benchFixture(b *testing.B, scale float64) string {
 	b.Helper()
 	repos, trees, files := int(300*scale), int(30*scale), 20000

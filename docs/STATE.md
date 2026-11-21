@@ -21,7 +21,7 @@
 - [x] 5. Config writing (846541f)
 - [x] 6. Walk and scan protection (a1a28b9)
 - [x] 7. Safety protection (7266542)
-- [ ] 8. Run-time root, hint and `-l`
+- [x] 8. Run-time root, hint and `-l` (3ef8e3a)
 - [ ] 9. Probe
 - [ ] 10. Onboarding model
 - [ ] 11. Front ends
@@ -42,3 +42,4 @@
 ## Verified facts (do not re-investigate)
 
 <!-- written by implement-plan/execute-tests; appended to docs/VERIFIED-FACTS.md by wrapup -->
+- NFR-8 (2026-11-21, darwin/arm64, NFR-1 fixture, `-benchtime 1x`): `BenchmarkProbe` 0.79 s vs `BenchmarkScan` 7.82 s; the probe only matches tool footprints and never inspects artifact trees.
