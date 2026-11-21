@@ -22,7 +22,7 @@
 - [x] 6. Walk and scan protection (a1a28b9)
 - [x] 7. Safety protection (7266542)
 - [x] 8. Run-time root, hint and `-l` (3ef8e3a)
-- [ ] 9. Probe
+- [x] 9. Probe (809f1e2)
 - [ ] 10. Onboarding model
 - [ ] 11. Front ends
 - [ ] 12. Wire onboarding
