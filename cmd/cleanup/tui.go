@@ -33,7 +33,7 @@ func runInteractive(s *session) int {
 		Execute: func(sel []safety.Verdict, emit func(execute.Event)) (*execute.Report, string, int, error) {
 			rep, logPath, code := s.execute(res, sel, emit)
 			if rep == nil {
-				return nil, "", code, errors.New("cannot open the run log; nothing was deleted")
+				return nil, "", code, errors.New("cannot start deletion; nothing was deleted")
 			}
 			return rep, logPath, code, nil
 		},

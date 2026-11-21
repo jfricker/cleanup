@@ -20,7 +20,7 @@
 - [x] 4. Config schema (e74b62e)
 - [x] 5. Config writing (846541f)
 - [x] 6. Walk and scan protection (a1a28b9)
-- [ ] 7. Safety protection
+- [x] 7. Safety protection (7266542)
 - [ ] 8. Run-time root, hint and `-l`
 - [ ] 9. Probe
 - [ ] 10. Onboarding model

@@ -1,3 +1,5 @@
+Root: $HOME/Projects (from default)
+
 Cleaners:
   python           on   Python: Regenerable Python caches and marker-verified virtualenvs
   node             on   Node: Regenerable Node/JS/TS framework caches, build outputs and node_modules

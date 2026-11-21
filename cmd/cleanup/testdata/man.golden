@@ -18,7 +18,7 @@ Skip the TUI and confirmation when deleting
 .SH SELECTION
 .TP
 \fB\-r\fR, \fB\-\-root\fR \fIDIR\fR
-Directory to scan (default ~/Projects)
+Directory to scan (default: project_root from config, else ~/Projects)
 .TP
 \fB\-c\fR, \fB\-\-config\fR \fIFILE\fR
 Config file merged over the defaults (default ~/.config/cleanup/config.toml)

@@ -11,7 +11,7 @@ Mode:
   -f, --force                Skip the TUI and confirmation when deleting
 
 Selection:
-  -r, --root DIR             Directory to scan (default ~/Projects)
+  -r, --root DIR             Directory to scan (default: project_root from config, else ~/Projects)
   -c, --config FILE          Config file merged over the defaults (default ~/.config/cleanup/config.toml)
   -o, --only IDS             Run only these cleaner ids (comma-separated or repeated)
   -x, --exclude IDS          Skip these cleaner ids (comma-separated or repeated)

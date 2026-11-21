@@ -7,11 +7,11 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"os/user"
 	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/jfricker/cleanup/internal/cli"
 	"github.com/jfricker/cleanup/internal/config"
@@ -49,9 +49,100 @@ type session struct {
 	git      *gitx.Runner
 	scanOpts scan.Options
 	cleaners []scan.Cleaner
+	cfgPath  string // config file in use; "" means the built-in defaults
 	stdout   io.Writer
 	stderr   io.Writer
 	signals  *signals
+}
+
+// env bundles everything run reads from the process, so tests can drive it through
+// pipes and fakes.
+type env struct {
+	Stdin       io.Reader
+	Stdout      io.Writer
+	Stderr      io.Writer
+	Interactive func() bool
+	Getenv      func(string) string
+	Executable  func() (string, error)
+	Now         func() time.Time
+}
+
+// realEnv is the env main passes.
+func realEnv() env {
+	return env{
+		Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr,
+		Interactive: func() bool { return isTTY(os.Stdin) && isTTY(os.Stdout) },
+		Getenv:      os.Getenv, Executable: os.Executable, Now: time.Now,
+	}
+}
+
+// start says how a run begins once arguments are parsed (TRIG-1..3).
+type start int
+
+const (
+	startRun  start = iota // run normally
+	startHint              // run normally with defaults, after the TRIG-3 hint
+)
+
+// noConfigHint is the TRIG-3 line.
+const noConfigHint = `cleanup: no config yet; run "cleanup --init" to set your project root and retired tools`
+
+// decideStart picks the start mode. Only the default config path being absent without
+// -c changes anything; -l never hints (TRIG-3). The onboarding cases (interactive, no
+// default config, no -c, none of -f/-T/-l) are folded into startHint until onboarding
+// exists; step 12 adds startOnboard and startOnboardOnly ahead of the hint.
+func decideStart(o cli.Options, defaultExists, interactive bool) start {
+	_ = interactive
+	if o.ConfigPath != "" || defaultExists || o.ListCategories {
+		return startRun
+	}
+	return startHint
+}
+
+// rootSource says where the scan root came from (CLI-11).
+type rootSource string
+
+const (
+	rootFromFlag    rootSource = "flag"
+	rootFromConfig  rootSource = "config"
+	rootFromDefault rootSource = "default"
+)
+
+// resolveRoot applies the precedence -r/positional > project_root > ~/Projects. A
+// config-sourced root that is missing, not a directory or refused is the PROOT-5
+// error; cfgFile names the config in that message.
+func resolveRoot(o cli.Options, cfg *config.Config, cfgFile, home string) (string, rootSource, error) {
+	if o.Root != "" {
+		return o.Root, rootFromFlag, nil
+	}
+	if cfg.ProjectRoot == "" {
+		return filepath.Join(home, "Projects"), rootFromDefault, nil
+	}
+	p := cfg.ProjectRoot
+	fail := func(reason string) error {
+		src := cfgFile
+		if src == "" {
+			src = "built-in defaults"
+		}
+		return fmt.Errorf("project_root %q from %s: %s; run \"cleanup --init\" or pass -r DIR", p, src, reason)
+	}
+	fi, err := os.Stat(p)
+	switch {
+	case err != nil:
+		return "", "", fail(errors.Unwrap(err).Error())
+	case !fi.IsDir():
+		return "", "", fail("not a directory")
+	}
+	r, err := rootguard.Resolve(p, rootguard.Options{})
+	if err != nil {
+		var ref *rootguard.RefusedError
+		if errors.As(err, &ref) {
+			return "", "", fail("refused: " + ref.Reason)
+		}
+		return "", "", fail(err.Error())
+	}
+	_ = r.Close()
+	return p, rootFromConfig, nil
 }
 
 // signals turns the first SIGINT/SIGTERM into a soft cancel (and cancels a scan) and
@@ -93,7 +184,8 @@ func newSignals() *signals {
 func (s *signals) SoftCancel() { s.cancelSoft() }
 func (s *signals) HardCancel() { s.cancelHard() }
 
-func run(args []string, stdout, stderr io.Writer) int {
+func run(args []string, e env) int {
+	stdout, stderr := e.Stdout, e.Stderr
 	opts, err := cli.Parse(args)
 	if err != nil {
 		fmt.Fprintf(stderr, "cleanup: %v\nRun 'cleanup --help' for usage.\n", err)
@@ -116,8 +208,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	cfgPath := opts.ConfigPath
-	if cfgPath == "" {
-		cfgPath = defaultConfigPath()
+	defPath, defExists := defaultConfigPath(e.Getenv)
+	if cfgPath == "" && defExists {
+		cfgPath = defPath
+	}
+	if decideStart(opts, defExists, e.Interactive()) == startHint {
+		fmt.Fprintln(stderr, noConfigHint)
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
@@ -136,20 +232,22 @@ func run(args []string, stdout, stderr io.Writer) int {
 	scanOpts := scan.Options{
 		Only: opts.Only, Exclude: opts.Exclude, Retired: opts.Retired, AgeDays: opts.AgeDays,
 		IncludeDirty: opts.IncludeDirty, OptIns: match.OptIns{Venvs: opts.Venvs, Modules: opts.Modules},
-	}
-	if opts.ListCategories {
-		listCategories(stdout, cfg, scanOpts, cfgPath, git.Bin())
-		return exitOK
+		Protected: cfg.ProtectedPaths,
 	}
 
-	rootArg := opts.Root
-	if rootArg == "" {
-		u, err := user.Current()
-		if err != nil {
-			fmt.Fprintf(stderr, "cleanup: %v\n", err)
-			return exitUsage
-		}
-		rootArg = filepath.Join(u.HomeDir, "Projects")
+	home, err := rootguard.Home()
+	if err != nil {
+		fmt.Fprintf(stderr, "cleanup: %v\n", err)
+		return exitUsage
+	}
+	rootArg, src, err := resolveRoot(opts, cfg, cfgPath, home)
+	if err != nil {
+		fmt.Fprintf(stderr, "cleanup: %v\n", err)
+		return exitUsage
+	}
+	if opts.ListCategories {
+		listCategories(stdout, cfg, scanOpts, cfgPath, git.Bin(), rootArg, src)
+		return exitOK
 	}
 	root, err := rootguard.Resolve(rootArg, rootguard.Options{})
 	if err != nil {
@@ -158,7 +256,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	defer root.Close()
 
-	useTUI := runTUI != nil && !opts.NoTUI && !opts.Force && isTTY(stdout) && isTTY(os.Stdin)
+	useTUI := runTUI != nil && !opts.NoTUI && !opts.Force && e.Interactive()
 	if opts.Mode == cli.Delete && !opts.Force && !useTUI {
 		fmt.Fprintln(stderr, "cleanup: --delete without an interactive terminal needs -f/--force")
 		return exitUsage
@@ -166,7 +264,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	sig := newSignals()
 	defer sig.stop()
-	s := &session{opts: opts, cfg: cfg, root: root, git: git, scanOpts: scanOpts,
+	s := &session{opts: opts, cfg: cfg, root: root, git: git, scanOpts: scanOpts, cfgPath: cfgPath,
 		cleaners: scan.Active(cfg, scanOpts), stdout: stdout, stderr: stderr, signals: sig}
 	if useTUI {
 		return runTUI(s)
@@ -206,6 +304,12 @@ func runPlain(s *session) int {
 // execute opens the run log (aborting before any deletion if it can't, LOG-2) and
 // deletes the selected verdicts. It returns the report, log path and exit code.
 func (s *session) execute(res *scan.Result, selected []safety.Verdict, emit func(execute.Event)) (*execute.Report, string, int) {
+	// Reload the config so a protected_paths change since the scan applies (PROT-6).
+	cfg, err := config.Load(s.cfgPath)
+	if err != nil {
+		fmt.Fprintf(s.stderr, "cleanup: config error, nothing was deleted:\n%v\n", err)
+		return nil, "", exitUsage
+	}
 	dir, err := runlog.DefaultDir()
 	if err == nil {
 		var log *runlog.Writer
@@ -217,7 +321,7 @@ func (s *session) execute(res *scan.Result, selected []safety.Verdict, emit func
 					targets = append(targets, t)
 				}
 			}
-			r := execute.Runner{Deleter: safety.NewDeleter(res.Inspector, s.cfg.ProtectedPaths), Git: s.git, Log: log}
+			r := execute.Runner{Deleter: safety.NewDeleter(res.Inspector, cfg.ProtectedPaths), Git: s.git, Log: log}
 			rep := r.Execute(s.signals.Hard, s.signals.Soft, targets, res.PruneRepos, emit)
 			code := exitOK
 			switch {
@@ -233,7 +337,16 @@ func (s *session) execute(res *scan.Result, selected []safety.Verdict, emit func
 	return nil, "", exitUsage
 }
 
-func listCategories(w io.Writer, cfg *config.Config, o scan.Options, cfgPath, gitBin string) {
+func listCategories(w io.Writer, cfg *config.Config, o scan.Options, cfgPath, gitBin, root string, src rootSource) {
+	fmt.Fprintf(w, "Root: %s (from %s)\n", root, src)
+	for _, p := range o.Protected {
+		state := "missing"
+		if fi, err := os.Stat(filepath.Join(root, filepath.FromSlash(p))); err == nil && fi.IsDir() {
+			state = "ok"
+		}
+		fmt.Fprintf(w, "Protected: %s %s\n", p, state)
+	}
+	fmt.Fprintln(w)
 	active := map[string]bool{}
 	for _, c := range scan.Active(cfg, o) {
 		active[c.ID] = true
@@ -265,20 +378,19 @@ func listCategories(w io.Writer, cfg *config.Config, o scan.Options, cfgPath, gi
 	fmt.Fprintf(w, "\nConfig: %s\nGit: %s\n", cfgPath, gitBin)
 }
 
-func defaultConfigPath() string {
-	base := os.Getenv("XDG_CONFIG_HOME")
+// defaultConfigPath returns the default config location and whether it exists.
+func defaultConfigPath(getenv func(string) string) (string, bool) {
+	base := getenv("XDG_CONFIG_HOME")
 	if !filepath.IsAbs(base) {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return ""
+			return "", false
 		}
 		base = filepath.Join(home, ".config")
 	}
 	p := filepath.Join(base, "cleanup", "config.toml")
-	if _, err := os.Stat(p); err != nil {
-		return ""
-	}
-	return p
+	_, err := os.Stat(p)
+	return p, err == nil
 }
 
 func isTTY(w any) bool {

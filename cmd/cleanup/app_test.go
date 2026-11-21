@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/jfricker/cleanup/internal/config"
+	"github.com/jfricker/cleanup/internal/rootguard"
 	"github.com/jfricker/cleanup/internal/testfix"
 )
 
@@ -57,8 +59,15 @@ type result struct {
 
 func runBin(t *testing.T, args ...string) result {
 	t.Helper()
+	return runBinIn(t, nil, args...)
+}
+
+// runBinIn is runBin with an explicit stdin (nil means /dev/null).
+func runBinIn(t *testing.T, stdin io.Reader, args ...string) result {
+	t.Helper()
 	home := t.TempDir()
 	cmd := exec.Command(binPath, args...)
+	cmd.Stdin = stdin
 	cmd.Env = append(testfix.Env(t), "HOME="+home, "XDG_STATE_HOME="+filepath.Join(home, "state"),
 		"XDG_CONFIG_HOME="+filepath.Join(home, "config"), "NO_COLOR=1")
 	var out, errb bytes.Buffer
@@ -127,6 +136,9 @@ func TestAC_L2_Golden(t *testing.T) {
 		t.Fatalf("list: %d %s", list.code, list.stderr)
 	}
 	out := strings.ReplaceAll(list.stdout, cfgFile, "$CONFIG")
+	if home, err := rootguard.Home(); err == nil {
+		out = strings.ReplaceAll(out, home, "$HOME")
+	}
 	if i := strings.Index(out, "Git: "); i >= 0 {
 		out = out[:i] + "Git: $GIT\n"
 	}

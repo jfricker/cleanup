@@ -82,7 +82,7 @@ var flagDefs = []flagDef{
 	{"dry-run", "n", gMode, "", "Preview only; delete nothing (default; the last of -n/-d wins)"},
 	{"delete", "d", gMode, "", "Delete selected items (needs TUI confirmation or -f/--force)"},
 	{"force", "f", gMode, "", "Skip the TUI and confirmation when deleting"},
-	{"root", "r", gSelect, "DIR", "Directory to scan (default ~/Projects)"},
+	{"root", "r", gSelect, "DIR", "Directory to scan (default: project_root from config, else ~/Projects)"},
 	{"config", "c", gSelect, "FILE", "Config file merged over the defaults (default ~/.config/cleanup/config.toml)"},
 	{"only", "o", gSelect, "IDS", "Run only these cleaner ids (comma-separated or repeated)"},
 	{"exclude", "x", gSelect, "IDS", "Skip these cleaner ids (comma-separated or repeated)"},
