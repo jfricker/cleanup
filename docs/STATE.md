@@ -23,7 +23,7 @@
 - [x] 7. Safety protection (7266542)
 - [x] 8. Run-time root, hint and `-l` (3ef8e3a)
 - [x] 9. Probe (809f1e2)
-- [ ] 10. Onboarding model
+- [x] 10. Onboarding model (c061935)
 - [ ] 11. Front ends
 - [ ] 12. Wire onboarding
 - [ ] 13. Release files and docs

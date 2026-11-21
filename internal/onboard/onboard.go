@@ -10,11 +10,23 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jfricker/cleanup/internal/config"
 	"github.com/jfricker/cleanup/internal/rootguard"
 	"github.com/jfricker/cleanup/internal/scan"
 )
+
+// ExitCancelled is the exit code when onboarding is cancelled (ONB-3).
+const ExitCancelled = 130
+
+// WriteFunc is the front-end contract with the caller. A front end never writes the
+// config itself: once the user confirms the review step it calls the WriteFunc exactly
+// once; the caller (cmd/cleanup) plans and writes the file and returns the text to
+// show (normally Flow.Summary(written, backup)). On cancel (Esc, Ctrl+C, EOF, context
+// cancellation) the WriteFunc is never called and the front end returns ExitCancelled.
+// Both front ends return (0, nil) on success, (2, err) when the WriteFunc fails.
+type WriteFunc func() (summary string, err error)
 
 // Step is one onboarding screen.
 type Step int
@@ -307,4 +319,69 @@ func (f *Flow) Summary(written, backup string) string {
 		b.WriteString("Setup is done: run your command again.\n")
 	}
 	return b.String()
+}
+
+// ConfigPath is the target config file shown in the review.
+func (f *Flow) ConfigPath() string { return f.in.ConfigPath }
+
+// Review renders the pre-write review lines shared by both front ends.
+func (f *Flow) Review() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Project root: %s\n", f.root)
+	if p := f.Protected(); len(p) > 0 {
+		fmt.Fprintf(&b, "Protected paths: %s\n", strings.Join(p, ", "))
+	} else {
+		b.WriteString("Protected paths: none\n")
+	}
+	ch := f.Changes()
+	var names []string
+	for _, t := range f.d.Tools {
+		if ch.Retired[t.ID] {
+			names = append(names, ToolName(t))
+		}
+	}
+	if len(names) > 0 {
+		fmt.Fprintf(&b, "Tools to mark retired: %s\n", strings.Join(names, ", "))
+	} else {
+		b.WriteString("Tools to mark retired: none\n")
+	}
+	if f.in.ConfigPath != "" {
+		fmt.Fprintf(&b, "Config file: %s\n", f.in.ConfigPath)
+	}
+	if f.in.Replacing {
+		b.WriteString("An existing config file will be backed up and replaced.\n")
+	}
+	return b.String()
+}
+
+// ToolName is a tool's display name.
+func ToolName(t config.Tool) string {
+	if t.Name != "" {
+		return t.Name
+	}
+	return t.ID
+}
+
+// ToolNote is the TOOL-3 note ("" when no item is too recent).
+func ToolNote(fp scan.ToolFootprint) string {
+	if fp.TooRecent == 0 {
+		return ""
+	}
+	noun := "items"
+	if fp.TooRecent == 1 {
+		noun = "item"
+	}
+	return fmt.Sprintf("%d %s too recent to clean yet (< %d days)", fp.TooRecent, noun, fp.Tool.AgeDays)
+}
+
+// FormatAge renders a footprint's youngest-item age compactly.
+func FormatAge(d time.Duration) string {
+	switch {
+	case d < time.Hour:
+		return "<1h"
+	case d < 48*time.Hour:
+		return fmt.Sprintf("%dh", int(d/time.Hour))
+	default:
+		return fmt.Sprintf("%dd", int(d/(24*time.Hour)))
+	}
 }
