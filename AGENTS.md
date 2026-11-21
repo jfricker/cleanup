@@ -1,7 +1,12 @@
 # AGENTS.md
 
+## Documentation
+The cycle documents live in `docs/` (`INTENT.md`, `SPEC.md`, `TECH-DESIGN.md`,
+`PLAN.md`, `STATE.md`); `docs/ARCHITECTURE.md` is the
+long-lived source of truth for architecture, and completed cycles are archived under `docs/archive/`. The prototype review that motivated this rebuild is in `docs/reference/`.
+
 ## Dev environment tips
-- Makefile is the primary tool for development and testing. Use `make help` to see available targets.
+- Makefile is the primary tool for development and testing. Use `make help` to see available targets. In this project it is used to wrap the common development, build, test, lint cycle commands. Makefile should not be used for releases or end users, it is only for developers.
 - Go 1.27, no cgo in the shipped binary (`make build` sets `CGO_ENABLED=0`). Tools
   (`staticcheck`, `govulncheck`) are pinned as `go.mod` tool directives: run them with
   `go tool <name>`, never a global install.

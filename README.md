@@ -1,13 +1,42 @@
 # cleanup
 
-Reclaims disk space under `~/Projects` from regenerable build artifacts, stale git
-worktrees and leftovers of dev tools you no longer use, without deleting work.
+Developers and experimenters during the Age of Agents are creating gigabytes of flotsdam in the projects. Cleanup is a CLI and TUI to help reclaim diskspace by finding leftovers from tools you no longer use, stale worktrees, and recreatable build artifacts.
 
-## Quick start
+![cleanup-demo](https://user-images.githubusercontent.com/tbd)
+
+## Features
+
+## Install with go (quickest)
+
+If you have a [Go environment](https://go.dev/doc/install) configured, the
+fastest way is to install a version directly from releases. Check the [Releases
+page](https://github.com/digitalocean/doctl/releases) for the latest `-beta`
+tag and use it in place of `v<version>-beta.<n>`:
+
+```
+go install github.com/digitalocean/doctl/cmd/doctl@v0.1
+```
+
+This drops the `doctl` binary in `$(go env GOPATH)/bin`; make sure that
+directory is on your `PATH`.
+
+### Pre-Compiled binary
+
+You can also download the binary for your operating system directly from the [Releases page](https://github.com/jfricker/cleanup/releases).
+
+### from source
 
 ```bash
+git clone https://github.com/jfricker/cleanup
+cd cleanup
+make install
+```
+
+## Quick Start
+```bash
 make build
-./cleanup            # interactive dry run over ~/Projects
+./cleanup --init
+./cleanup            # interactive dry run over [Your Project Root]
 ./cleanup -d         # review, select and confirm deletions
 ./cleanup -T -s      # plain-text dry run, including skipped items
 ```
