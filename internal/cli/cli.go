@@ -94,7 +94,7 @@ var flagDefs = []flagDef{
 	{"include-dirty", "D", gSafety, "", "UNSAFE: also delete git trees with uncommitted changes, untracked files or an unreachable detached HEAD"},
 	{"no-tui", "T", gOutput, "", "Plain-text output instead of the interactive TUI"},
 	{"show-skipped", "s", gOutput, "", "Show skipped and protected items"},
-	{"group-by", "g", gOutput, "MODE", "Initial TUI grouping: cleaner or project (default cleaner)"},
+	{"group-by", "g", gOutput, "MODE", "Initial TUI grouping: project or cleaner (default project)"},
 	{"list-categories", "l", gInfo, "", "List cleaners and retired tools, then exit"},
 	{"print-config", "P", gInfo, "", "Print the default config, then exit"},
 	{"print-man", "M", gInfo, "", "Print the man page (roff), then exit"},
@@ -179,7 +179,7 @@ func Parse(args []string) (Options, error) {
 		case "show-skipped":
 			fs.BoolVarP(&o.ShowSkipped, d.name, d.short, false, d.help)
 		case "group-by":
-			fs.StringVarP(&groupBy, d.name, d.short, "cleaner", d.help)
+			fs.StringVarP(&groupBy, d.name, d.short, "project", d.help)
 		case "list-categories":
 			fs.BoolVarP(&o.ListCategories, d.name, d.short, false, d.help)
 		case "print-config":

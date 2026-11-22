@@ -5,7 +5,8 @@ runs the real binary in tmux against it and renders a PNG
 (`scripts/tui-screenshot.sh`, `scripts/ansi2png.mjs`). The test bed refuses a
 non-empty directory rather than clearing it; delete `.testbed/` yourself to rebuild.
 
-Command used for every shot: `cleanup -c .testbed/config.toml -d -v -m -s`, 132×34, dark.
+Command used for every shot: `cleanup -c .testbed/config.toml -d -v -m -s`, 132×34, dark
+(v0 shots before project grouping became the default add `-g cleaner` implicitly).
 
 ## v0 (current TUI)
 
@@ -13,7 +14,14 @@ Command used for every shot: `cleanup -c .testbed/config.toml -d -v -m -s`, 132�
 |---|---|
 | `v0-review.png` | Review tree grouped by cleaner, cursor on an eligible cache, detail pane |
 | `v0-worktree-note.png` | Unpushed worktree: eligible-with-notes, unselected by default, note in detail |
+| `v0-project-group.png` | Same data with `-g project` (name-sorted groups) |
 | `v0-skipped.png` | Skipped and protected group, cursor on an out-of-root worktree |
+
+## v1 increments
+
+| File | Change |
+|---|---|
+| `v1-1-project-default.png` | `--group-by` defaults to `project` (`-g cleaner` for the old view) |
 
 ## Test bed states (`.testbed/Projects`)
 
