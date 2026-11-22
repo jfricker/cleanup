@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
+
 	"github.com/jfricker/cleanup/internal/config"
 	"github.com/jfricker/cleanup/internal/execute"
 	"github.com/jfricker/cleanup/internal/gitx"
@@ -233,4 +235,37 @@ func stripANSI(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// Under project grouping, item rows drop the project prefix the group label implies;
+// cleaner grouping and skipped items keep the full path.
+func TestProjectGroupingDropsPrefix(t *testing.T) {
+	a := newApp(t, true)
+	a.group = ByProject
+	a.rebuild()
+	names := map[string]string{}
+	for _, v := range a.verdicts {
+		names[v.Candidate.Rel] = a.itemName(v)
+	}
+	if got := names["b/target"]; got != "target" {
+		t.Fatalf("b/target shown as %q", got)
+	}
+	if got := names["web/build"]; got != "web/build" {
+		t.Fatalf("skipped web/build shown as %q", got)
+	}
+	a.group = ByCleaner
+	for _, v := range a.verdicts {
+		if got := a.itemName(v); got != v.Candidate.Rel {
+			t.Fatalf("cleaner grouping shows %q for %q", got, v.Candidate.Rel)
+		}
+	}
+}
+
+// The detail box is sized to its content, not to the pane.
+func TestDetailBoxFitsContent(t *testing.T) {
+	out := stripANSI(box("ab\nabcd", 40, 20, doubleBox, lipgloss.NewStyle()))
+	want := "╔══════╗\n║ ab   ║\n║ abcd ║\n╚══════╝"
+	if out != want {
+		t.Fatalf("box:\n%s\nwant:\n%s", out, want)
+	}
 }

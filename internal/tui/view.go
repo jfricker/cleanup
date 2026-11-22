@@ -83,21 +83,24 @@ func (a *App) frame(p palette, content string) string {
 	return strings.Join(out, "\n")
 }
 
-// box draws a w×h box with the given border characters (tl, tr, bl, br, horizontal,
-// vertical) around text, with one column of padding on each side.
-func box(text string, w, h int, c [6]string, st lipgloss.Style) string {
-	cw := max(w-4, 1)
-	lines := strings.Split(text, "\n")
-	out := make([]string, 0, h)
-	out = append(out, st.Render(c[0]+strings.Repeat(c[4], w-2)+c[1]))
-	for i := range max(h-2, 0) {
-		l := ""
-		if i < len(lines) {
-			l = ansi.Truncate(lines[i], cw, "…")
-		}
-		out = append(out, st.Render(c[5])+" "+padRight(l, cw)+" "+st.Render(c[5]))
+// box draws a border (tl, tr, bl, br, horizontal, vertical) around text with one
+// column of padding on each side, sized to the text but at most maxW×maxH cells.
+func box(text string, maxW, maxH int, c [6]string, st lipgloss.Style) string {
+	lines := strings.Split(strings.TrimRight(text, "\n"), "\n")
+	if len(lines) > maxH-2 {
+		lines = lines[:max(maxH-2, 0)]
 	}
-	out = append(out, st.Render(c[2]+strings.Repeat(c[4], w-2)+c[3]))
+	cw := 1
+	for _, l := range lines {
+		cw = max(cw, lipgloss.Width(l))
+	}
+	cw = min(cw, max(maxW-4, 1))
+	out := make([]string, 0, len(lines)+2)
+	out = append(out, st.Render(c[0]+strings.Repeat(c[4], cw+2)+c[1]))
+	for _, l := range lines {
+		out = append(out, st.Render(c[5])+" "+padRight(ansi.Truncate(l, cw, "…"), cw)+" "+st.Render(c[5]))
+	}
+	out = append(out, st.Render(c[2]+strings.Repeat(c[4], cw+2)+c[3]))
 	return strings.Join(out, "\n")
 }
 
@@ -151,6 +154,9 @@ func (a *App) viewReview(p palette) string {
 		main = lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(treeW).Render(treeBlock), " ", detail)
 	case a.detail:
 		main = box(a.detailText(p, iw-4), iw, h, doubleBox, lipgloss.NewStyle().Foreground(p.accent))
+		if n := strings.Count(main, "\n") + 1; n < h {
+			main += strings.Repeat("\n", h-n)
+		}
 	default:
 		main = treeBlock
 	}
@@ -195,11 +201,25 @@ func (a *App) renderRow(p palette, i, w int) string {
 	size := plain.Bytes(v.Size)
 	nameW := w - 2 - len(size) - 9
 	if cursor {
-		inner := fmt.Sprintf("%s %s %s %s ", mark, glyph, padRight(fit(v.Candidate.Rel, nameW), nameW), size)
+		inner := fmt.Sprintf("%s %s %s %s ", mark, glyph, padRight(fit(a.itemName(v), nameW), nameW), size)
 		return edge.Render("│") + hl.Render(padRight(inner, w-2)) + edge.Render("│")
 	}
-	inner := fmt.Sprintf("%s %s %s %s ", mark, st.Render(glyph), padRight(fit(v.Candidate.Rel, nameW), nameW), size)
+	inner := fmt.Sprintf("%s %s %s %s ", mark, st.Render(glyph), padRight(fit(a.itemName(v), nameW), nameW), size)
 	return edge.Render("│") + padRight(inner, w-2) + edge.Render("│")
+}
+
+// itemName is the path shown in the tree. Under project grouping the project is
+// already the group label, so its prefix is dropped. Top-level items, skipped
+// items and other groupings keep the full root-relative path.
+func (a *App) itemName(v safety.Verdict) string {
+	rel := v.Candidate.Rel
+	if a.group != ByProject || !v.Selectable() {
+		return rel
+	}
+	if p := project(rel); p != "." && p != "(outside root)" {
+		return strings.TrimPrefix(rel, p+"/")
+	}
+	return rel
 }
 
 func (a *App) groupLabel(r row) string {
