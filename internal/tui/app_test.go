@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
+
 	"github.com/jfricker/cleanup/internal/config"
 	"github.com/jfricker/cleanup/internal/execute"
 	"github.com/jfricker/cleanup/internal/gitx"
@@ -103,7 +105,7 @@ func TestAC_T1_Phases(t *testing.T) {
 	keys(a, "g")
 	// Filter.
 	keys(a, "/", "t", "a", "r", "enter")
-	if len(a.rows) != 2 || a.verdicts[a.rows[1].idx].Candidate.Rel != "b/target" {
+	if len(a.rows) != 3 || a.verdicts[a.rows[1].idx].Candidate.Rel != "b/target" || a.rows[2].kind != rowEnd {
 		t.Fatalf("filter rows %+v", a.rows)
 	}
 	keys(a, "/", "esc")
@@ -233,4 +235,52 @@ func stripANSI(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// Under project grouping, item rows drop the project prefix the group label implies;
+// cleaner grouping and skipped items keep the full path.
+func TestProjectGroupingDropsPrefix(t *testing.T) {
+	a := newApp(t, true)
+	a.group = ByProject
+	a.rebuild()
+	names := map[string]string{}
+	for _, v := range a.verdicts {
+		names[v.Candidate.Rel] = a.itemName(v)
+	}
+	if got := names["b/target"]; got != "target" {
+		t.Fatalf("b/target shown as %q", got)
+	}
+	if got := names["web/build"]; got != "web/build" {
+		t.Fatalf("skipped web/build shown as %q", got)
+	}
+	a.group = ByCleaner
+	for _, v := range a.verdicts {
+		if got := a.itemName(v); got != v.Candidate.Rel {
+			t.Fatalf("cleaner grouping shows %q for %q", got, v.Candidate.Rel)
+		}
+	}
+}
+
+// The detail box keeps the pane width and is as tall as its content.
+func TestDetailBoxFitsContent(t *testing.T) {
+	out := stripANSI(box("ab\nabcd", 10, 20, doubleBox, lipgloss.NewStyle()))
+	want := "╔════════╗\n║ ab     ║\n║ abcd   ║\n╚════════╝"
+	if out != want {
+		t.Fatalf("box:\n%s\nwant:\n%s", out, want)
+	}
+}
+
+// Footer hints drop from the middle when narrow, always keeping the last (quit).
+func TestRenderHintsKeepsLast(t *testing.T) {
+	hs := []hint{{"a", "all"}, {"n", "none"}, {"q", "quit"}}
+	if got := renderHints(nil, hs, 100); got != "a all · n none · q quit" {
+		t.Fatalf("wide: %q", got)
+	}
+	if got := renderHints(nil, hs, 16); got != "a all · q quit" {
+		t.Fatalf("narrow: %q", got)
+	}
+	p := newPalette(true)
+	if got := stripANSI(renderHints(&p, hs, 100)); got != " a  all   n  none   q  quit" {
+		t.Fatalf("styled: %q", got)
+	}
 }

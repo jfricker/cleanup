@@ -26,7 +26,7 @@ Safety overrides:
 Output:
   -T, --no-tui               Plain-text output instead of the interactive TUI
   -s, --show-skipped         Show skipped and protected items
-  -g, --group-by MODE        Initial TUI grouping: cleaner or project (default cleaner)
+  -g, --group-by MODE        Initial TUI grouping: project or cleaner (default project)
 
 Information:
   -l, --list-categories      List cleaners and retired tools, then exit

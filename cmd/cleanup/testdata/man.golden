@@ -53,7 +53,7 @@ Plain\-text output instead of the interactive TUI
 Show skipped and protected items
 .TP
 \fB\-g\fR, \fB\-\-group\-by\fR \fIMODE\fR
-Initial TUI grouping: cleaner or project (default cleaner)
+Initial TUI grouping: project or cleaner (default project)
 .SH INFORMATION
 .TP
 \fB\-l\fR, \fB\-\-list\-categories\fR

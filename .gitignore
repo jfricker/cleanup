@@ -38,3 +38,6 @@ dist/
 
 # Release output
 dist-extra/
+
+# TUI test bed (make testbed)
+/.testbed/

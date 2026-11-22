@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/jfricker/cleanup/internal/plain"
 	"github.com/jfricker/cleanup/internal/safety"
@@ -17,7 +18,7 @@ import (
 // palette holds colours for one background. State is always also shown by a glyph
 // or word, never by colour alone (TUI-6).
 type palette struct {
-	accent, muted, ok, warn, bad, sel, selFg color.Color
+	accent, muted, ok, warn, bad, sel, selFg, keyBg color.Color
 }
 
 func newPalette(dark bool) palette {
@@ -30,6 +31,7 @@ func newPalette(dark bool) palette {
 		bad:    ld(lipgloss.Color("#B3261E"), lipgloss.Color("#FF8A80")),
 		sel:    ld(lipgloss.Color("#DCD3FF"), lipgloss.Color("#3B2F73")),
 		selFg:  ld(lipgloss.Color("#1B1340"), lipgloss.Color("#FFFFFF")),
+		keyBg:  ld(lipgloss.Color("#E6E1F7"), lipgloss.Color("#2E2A44")),
 	}
 }
 
@@ -43,7 +45,7 @@ func (a *App) View() string {
 	if a.Opts.Delete {
 		mode = "delete"
 	}
-	header := title.Render("cleanup") + " " + lipgloss.NewStyle().Foreground(p.muted).Render(mode+" · "+truncLeft(a.Opts.Root, a.Width-20))
+	header := title.Render("cleanup") + " " + lipgloss.NewStyle().Foreground(p.muted).Render(mode+" · "+truncLeft(a.Opts.Root, a.innerW()-20))
 	var body string
 	switch a.Phase {
 	case Scanning:
@@ -57,8 +59,54 @@ func (a *App) View() string {
 	case Done:
 		body = a.viewDone(p)
 	}
-	return header + "\n" + body
+	return a.frame(p, header+"\n"+body)
 }
+
+// innerW is the width inside the outer frame.
+func (a *App) innerW() int { return max(a.Width-2, 10) }
+
+// frame draws a single-line border around the whole screen, padding or clipping
+// content to the terminal size.
+func (a *App) frame(p palette, content string) string {
+	return frame(lipgloss.NewStyle().Foreground(p.muted), content, a.innerW(), max(a.Height-2, 1))
+}
+
+// frame draws a single-line border in style st around content, padded or clipped
+// to iw×ih cells inside the border.
+func frame(st lipgloss.Style, content string, iw, ih int) string {
+	lines := strings.Split(content, "\n")
+	out := make([]string, 0, ih+2)
+	out = append(out, st.Render("┌"+strings.Repeat("─", iw)+"┐"))
+	for i := range ih {
+		l := ""
+		if i < len(lines) {
+			l = ansi.Truncate(lines[i], iw, "…")
+		}
+		out = append(out, st.Render("│")+padRight(l, iw)+st.Render("│"))
+	}
+	out = append(out, st.Render("└"+strings.Repeat("─", iw)+"┘"))
+	return strings.Join(out, "\n")
+}
+
+// box draws a border (tl, tr, bl, br, horizontal, vertical) around text with one
+// column of padding on each side. It is w cells wide and as tall as the text, up to
+// maxH rows.
+func box(text string, w, maxH int, c [6]string, st lipgloss.Style) string {
+	lines := strings.Split(strings.TrimRight(text, "\n"), "\n")
+	if len(lines) > maxH-2 {
+		lines = lines[:max(maxH-2, 0)]
+	}
+	cw := max(w-4, 1)
+	out := make([]string, 0, len(lines)+2)
+	out = append(out, st.Render(c[0]+strings.Repeat(c[4], cw+2)+c[1]))
+	for _, l := range lines {
+		out = append(out, st.Render(c[5])+" "+padRight(ansi.Truncate(l, cw, "…"), cw)+" "+st.Render(c[5]))
+	}
+	out = append(out, st.Render(c[2]+strings.Repeat(c[4], cw+2)+c[3]))
+	return strings.Join(out, "\n")
+}
+
+var doubleBox = [6]string{"╔", "╗", "╚", "╝", "═", "║"}
 
 func (a *App) viewScanning(p palette) string {
 	e := a.ScanProgress
@@ -73,19 +121,20 @@ func (a *App) viewScanning(p palette) string {
 		fmt.Sprintf("   candidates   %d", e.Candidates),
 		fmt.Sprintf("   inspected    %d", e.Inspected),
 		fmt.Sprintf("   elapsed      %s", time.Since(a.ScanStart).Round(time.Second)),
-		"   " + lipgloss.NewStyle().Foreground(p.muted).Render(truncLeft(e.Path, a.Width-4)),
+		"   " + lipgloss.NewStyle().Foreground(p.muted).Render(truncLeft(e.Path, a.innerW()-4)),
 		"",
-		lipgloss.NewStyle().Foreground(p.muted).Render(" q / Ctrl+C: stop the scan (nothing is deleted)"),
+		" " + renderHints(&p, []hint{{"q", "stop the scan"}, {"Ctrl+C", "stop"}, {"", "nothing is deleted"}}, a.innerW()-1),
 	}
 	return strings.Join(lines, "\n")
 }
 
 func (a *App) viewReview(p palette) string {
 	h := a.bodyHeight()
-	wide := a.Width >= 100
-	treeW := a.Width
+	iw := a.innerW()
+	wide := iw >= 100
+	treeW := iw
 	if wide {
-		treeW = a.Width * 3 / 5
+		treeW = iw * 3 / 5
 	}
 	var tree []string
 	for i := a.offset; i < len(a.rows) && i < a.offset+h; i++ {
@@ -102,59 +151,93 @@ func (a *App) viewReview(p palette) string {
 	var main string
 	switch {
 	case wide:
-		detail := lipgloss.NewStyle().Width(a.Width-treeW-3).Height(h).
-			Border(lipgloss.NormalBorder(), false, false, false, true).BorderForeground(p.muted).PaddingLeft(1).
-			Render(a.detailText(p, a.Width-treeW-5))
-		main = lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(treeW).Render(treeBlock), detail)
+		dw := iw - treeW - 1
+		detail := box(a.detailText(p, dw-4), dw, h, doubleBox, lipgloss.NewStyle().Foreground(p.accent))
+		main = lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(treeW).Render(treeBlock), " ", detail)
 	case a.detail:
-		main = lipgloss.NewStyle().Height(h).Render(a.detailText(p, a.Width-2))
+		main = box(a.detailText(p, iw-4), iw, h, doubleBox, lipgloss.NewStyle().Foreground(p.accent))
+		if n := strings.Count(main, "\n") + 1; n < h {
+			main += strings.Repeat("\n", h-n)
+		}
 	default:
 		main = treeBlock
 	}
 	return main + "\n" + a.footer(p)
 }
 
+// renderRow draws one tree row w cells wide. An expanded group is drawn as a
+// single-line box: its header row is the top edge, items sit between side edges and
+// a rowEnd closes it. Collapsed groups have no box.
 func (a *App) renderRow(p palette, i, w int) string {
 	r := a.rows[i]
 	cursor := i == a.cursor
-	var line string
-	if r.kind == rowGroup {
-		arrow := "▾"
-		if a.collapsed[r.key] {
-			arrow = "▸"
-		}
-		var size int64
-		nsel := 0
-		for _, idx := range r.items {
-			size += a.verdicts[idx].Size
-			if a.selected[idx] {
-				nsel++
-			}
-		}
-		sel := ""
-		if a.Opts.Delete && r.key != skippedKey {
-			sel = fmt.Sprintf(" %d/%d selected", nsel, len(r.items))
-		}
-		line = fmt.Sprintf("%s %s (%d, %s)%s", arrow, r.label, len(r.items), plain.Bytes(size), sel)
-		line = fit(line, w-1)
-		if !cursor {
-			line = lipgloss.NewStyle().Bold(true).Render(line)
-		}
-	} else {
-		v := a.verdicts[r.idx]
-		glyph, st := a.glyph(p, r.idx, v)
-		glyph = padRight(glyph, 4)
-		if cursor {
-			st = lipgloss.NewStyle() // the row highlight carries the colour
-		}
-		size := plain.Bytes(v.Size)
-		name := fit(v.Candidate.Rel, w-len(size)-11)
-		line = fmt.Sprintf("  %s %s %s", st.Render(glyph), padRight(name, w-len(size)-11), size)
-	}
+	edge := lipgloss.NewStyle().Foreground(p.muted)
+	hl := lipgloss.NewStyle().Background(p.sel).Foreground(p.selFg)
+	bold := lipgloss.NewStyle().Bold(true)
+	mark := " "
 	if cursor {
-		return lipgloss.NewStyle().Background(p.sel).Foreground(p.selFg).Render(padRight("›"+line, w))
+		mark = "›"
 	}
-	return " " + line
+	switch r.kind {
+	case rowEnd:
+		return edge.Render("└" + strings.Repeat("─", w-2) + "┘")
+	case rowGroup:
+		label := a.groupLabel(r)
+		if a.collapsed[r.key] {
+			s := padRight(fit(mark+"▸ "+label, w-1), w-1)
+			if cursor {
+				return " " + hl.Render(s)
+			}
+			return " " + bold.Render(s)
+		}
+		s := fit(mark+"▾ "+label+" ", w-3)
+		st := bold
+		if cursor {
+			st = hl
+		}
+		return edge.Render("┌") + st.Render(s) + edge.Render(strings.Repeat("─", max(w-2-lipgloss.Width(s), 0))+"┐")
+	}
+	v := a.verdicts[r.idx]
+	glyph, st := a.glyph(p, r.idx, v)
+	glyph = padRight(glyph, 4)
+	size := plain.Bytes(v.Size)
+	nameW := w - 2 - len(size) - 9
+	if cursor {
+		inner := fmt.Sprintf("%s %s %s %s ", mark, glyph, padRight(fit(a.itemName(v), nameW), nameW), size)
+		return edge.Render("│") + hl.Render(padRight(inner, w-2)) + edge.Render("│")
+	}
+	inner := fmt.Sprintf("%s %s %s %s ", mark, st.Render(glyph), padRight(fit(a.itemName(v), nameW), nameW), size)
+	return edge.Render("│") + padRight(inner, w-2) + edge.Render("│")
+}
+
+// itemName is the path shown in the tree. Under project grouping the project is
+// already the group label, so its prefix is dropped. Top-level items, skipped
+// items and other groupings keep the full root-relative path.
+func (a *App) itemName(v safety.Verdict) string {
+	rel := v.Candidate.Rel
+	if a.group != ByProject || !v.Selectable() {
+		return rel
+	}
+	if p := project(rel); p != "." && p != "(outside root)" {
+		return strings.TrimPrefix(rel, p+"/")
+	}
+	return rel
+}
+
+func (a *App) groupLabel(r row) string {
+	var size int64
+	nsel := 0
+	for _, idx := range r.items {
+		size += a.verdicts[idx].Size
+		if a.selected[idx] {
+			nsel++
+		}
+	}
+	sel := ""
+	if a.Opts.Delete && r.key != skippedKey {
+		sel = fmt.Sprintf(" %d/%d selected", nsel, len(r.items))
+	}
+	return fmt.Sprintf("%s (%d, %s)%s", r.label, len(r.items), plain.Bytes(size), sel)
 }
 
 func (a *App) glyph(p palette, idx int, v safety.Verdict) (string, lipgloss.Style) {
@@ -218,28 +301,69 @@ func (a *App) detailText(p palette, w int) string {
 	return strings.Join(lines, "\n")
 }
 
+// hint is one key and the action it performs in a footer.
+type hint struct{ key, desc string }
+
+// renderHints draws hints as highlighted key caps followed by their action, at
+// most w cells wide. If they don't fit, hints before the last one are dropped
+// (the last is always the way out). A nil palette renders plain text for NO_COLOR.
+func renderHints(p *palette, hs []hint, w int) string {
+	render := func(hs []hint) string {
+		parts := make([]string, len(hs))
+		for i, h := range hs {
+			switch {
+			case h.key == "" && p == nil:
+				parts[i] = h.desc
+			case h.key == "":
+				parts[i] = lipgloss.NewStyle().Foreground(p.muted).Render(h.desc)
+			case p == nil:
+				parts[i] = h.key + " " + h.desc
+			default:
+				parts[i] = lipgloss.NewStyle().Bold(true).Foreground(p.accent).Background(p.keyBg).Render(" "+h.key+" ") + " " + h.desc
+			}
+		}
+		sep := "  "
+		if p == nil {
+			sep = " · "
+		}
+		return strings.Join(parts, sep)
+	}
+	hs = slices.Clone(hs)
+	out := render(hs)
+	for lipgloss.Width(out) > w && len(hs) > 1 {
+		hs = slices.Delete(hs, len(hs)-2, len(hs)-1)
+		out = render(hs)
+	}
+	return out
+}
+
+// footer is two lines: navigation and view keys with the selection total on the
+// right, then the actions that change what is selected or deleted.
 func (a *App) footer(p palette) string {
-	muted := lipgloss.NewStyle().Foreground(p.muted)
-	if a.filtering {
-		return lipgloss.NewStyle().Foreground(p.accent).Render("filter: "+a.filter+"▏") + muted.Render("  enter apply · esc clear")
-	}
-	keys := "↑↓ move · ←→ fold · g group · / filter · i detail · q quit"
-	if a.Width < 100 {
-		keys = "↑↓ ←→ · g group · / find · i info · q quit"
-	}
+	iw := a.innerW()
 	status := fmt.Sprintf("%d eligible", a.eligibleCount())
 	if a.Opts.Delete {
-		if a.Width < 100 {
-			keys = "spc select · a all · d delete · / find · i info · q quit"
-		} else {
-			keys = "space select · a all · n none · d delete · " + keys
-		}
 		status = fmt.Sprintf("%d selected, %s", len(a.Selected()), plain.Bytes(a.SelectedSize()))
 	}
-	if a.filter != "" {
+	if a.filter != "" && !a.filtering {
 		status += " · filter: " + a.filter
 	}
-	return muted.Render(fit(keys, a.Width-len(status)-3)) + "  " + lipgloss.NewStyle().Bold(true).Render(status)
+	var left string
+	if a.filtering {
+		left = lipgloss.NewStyle().Foreground(p.accent).Render("filter: "+a.filter+"▏") + "  " +
+			renderHints(&p, []hint{{"enter", "apply"}, {"esc", "clear"}}, iw-len(a.filter)-12-len(status))
+	} else {
+		nav := []hint{{"↑↓", "move"}, {"←→", "fold"}, {"g", "group"}, {"/", "filter"}, {"i", "detail"}}
+		left = renderHints(&p, nav, iw-lipgloss.Width(status)-2)
+	}
+	gap := max(iw-lipgloss.Width(left)-lipgloss.Width(status), 1)
+	line1 := left + strings.Repeat(" ", gap) + lipgloss.NewStyle().Bold(true).Render(status)
+	var acts []hint
+	if a.Opts.Delete {
+		acts = append(acts, hint{"space", "select"}, hint{"a", "all"}, hint{"n", "none"}, hint{"d", "delete"})
+	}
+	acts = append(acts, hint{"q", "quit"})
+	return line1 + "\n" + renderHints(&p, acts, iw)
 }
 
 func (a *App) eligibleCount() int {
@@ -264,7 +388,7 @@ func (a *App) viewConfirm(p palette) string {
 			notes = append(notes, v.Candidate.Rel+": "+n.Text)
 		}
 	}
-	w := min(a.Width-4, 90)
+	w := min(a.innerW()-6, 90)
 	lines := []string{
 		lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("Delete %d items (%s)?", len(sel), plain.Bytes(a.SelectedSize()))),
 		"",
@@ -274,7 +398,7 @@ func (a *App) viewConfirm(p palette) string {
 	if len(warns) > 0 {
 		lines = append(lines, "", lipgloss.NewStyle().Foreground(p.warn).Render("Warnings"))
 		for _, x := range warns {
-			lines = append(lines, "  ! "+wrap(x, w-6))
+			lines = append(lines, "  ! "+strings.ReplaceAll(wrap(x, w-10), "\n", "\n    "))
 		}
 	}
 	if len(notes) > 0 {
@@ -296,14 +420,14 @@ func (a *App) viewConfirm(p palette) string {
 		return s.Render(label)
 	}
 	buttons := lipgloss.JoinHorizontal(lipgloss.Top, btn("Cancel", !a.confirmDelete, p.accent), "  ", btn("Delete", a.confirmDelete, p.bad))
-	lines = append(lines, "", buttons, lipgloss.NewStyle().Foreground(p.muted).Render("←→ choose · enter confirm · y delete · n/esc back"))
+	lines = append(lines, "", buttons, "", renderHints(&p, []hint{{"←→", "choose"}, {"enter", "confirm"}, {"y", "delete"}, {"n/esc", "back"}}, w))
 	box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(p.bad).Padding(1, 2).Width(w).Render(strings.Join(lines, "\n"))
 	return "\n" + box
 }
 
 func (a *App) viewDeleting(p palette) string {
 	total := max(a.DelTotal, 1)
-	barW := max(min(a.Width-20, 60), 10)
+	barW := max(min(a.innerW()-20, 60), 10)
 	filled := barW * a.DelDone / total
 	bar := lipgloss.NewStyle().Foreground(p.accent).Render(strings.Repeat("█", filled)) +
 		lipgloss.NewStyle().Foreground(p.muted).Render(strings.Repeat("░", barW-filled))
@@ -311,7 +435,7 @@ func (a *App) viewDeleting(p palette) string {
 		"",
 		fmt.Sprintf(" Deleting  %s  %d/%d", bar, a.DelDone, a.DelTotal),
 		fmt.Sprintf(" freed     %s", plain.Bytes(a.DelBytes)),
-		" " + lipgloss.NewStyle().Foreground(p.muted).Render(truncLeft(a.DelCurrent, a.Width-2)),
+		" " + lipgloss.NewStyle().Foreground(p.muted).Render(truncLeft(a.DelCurrent, a.innerW()-2)),
 		"",
 	}
 	switch {
@@ -320,20 +444,20 @@ func (a *App) viewDeleting(p palette) string {
 	case a.Stopping:
 		lines = append(lines, lipgloss.NewStyle().Foreground(p.warn).Render(" Stopping after the current item… (Ctrl+C again to abort it)"))
 	default:
-		lines = append(lines, lipgloss.NewStyle().Foreground(p.muted).Render(" Ctrl+C: stop after the current item"))
+		lines = append(lines, " "+renderHints(&p, []hint{{"Ctrl+C", "stop after the current item"}}, a.innerW()-1))
 	}
 	return strings.Join(lines, "\n")
 }
 
 func (a *App) viewDone(p palette) string {
 	if a.Err != nil {
-		return "\n" + lipgloss.NewStyle().Foreground(p.bad).Render(" "+a.Err.Error()) + "\n\n press q to quit"
+		return "\n" + lipgloss.NewStyle().Foreground(p.bad).Render(" "+a.Err.Error()) + "\n\n " + renderHints(&p, []hint{{"q", "quit"}}, a.innerW()-1)
 	}
 	var buf bytes.Buffer
 	if a.Report != nil {
 		plain.Printer{W: &buf}.Report(*a.Report, a.LogPath)
 	}
-	return buf.String() + "\n" + lipgloss.NewStyle().Foreground(p.muted).Render("press q or enter to quit")
+	return buf.String() + "\n" + renderHints(&p, []hint{{"q/enter", "quit"}}, a.innerW())
 }
 
 // fit truncates s to at most w display cells with an ellipsis.

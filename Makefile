@@ -5,7 +5,7 @@ export CGO_ENABLED := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build lint test check bench golden clean
+.PHONY: help build lint test check bench golden testbed screenshot clean
 
 help: ## Show available targets
 	@awk 'BEGIN{FS=":.*## "} /^[a-zA-Z_-]+:.*## /{printf "  %-8s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -30,6 +30,12 @@ bench: ## Run the NFR-1 scan benchmark (slow; not part of check)
 
 golden: ## Regenerate golden test files
 	go test ./cmd/cleanup/ -update
+
+testbed: ## Build a fresh demo project tree in .testbed/ (refuses if non-empty)
+	go run ./tools/testbed -out .testbed
+
+screenshot: build ## Capture the TUI on .testbed/ to docs/screenshots/current.png
+	scripts/tui-screenshot.sh docs/screenshots/current.png "Down Down" -c .testbed/config.toml -d -v -m -s
 
 clean: ## Remove build output
 	go clean
