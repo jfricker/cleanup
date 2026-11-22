@@ -261,10 +261,10 @@ func TestProjectGroupingDropsPrefix(t *testing.T) {
 	}
 }
 
-// The detail box is sized to its content, not to the pane.
+// The detail box keeps the pane width and is as tall as its content.
 func TestDetailBoxFitsContent(t *testing.T) {
-	out := stripANSI(box("ab\nabcd", 40, 20, doubleBox, lipgloss.NewStyle()))
-	want := "╔══════╗\n║ ab   ║\n║ abcd ║\n╚══════╝"
+	out := stripANSI(box("ab\nabcd", 10, 20, doubleBox, lipgloss.NewStyle()))
+	want := "╔════════╗\n║ ab     ║\n║ abcd   ║\n╚════════╝"
 	if out != want {
 		t.Fatalf("box:\n%s\nwant:\n%s", out, want)
 	}

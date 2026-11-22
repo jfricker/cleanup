@@ -67,34 +67,35 @@ func (a *App) innerW() int { return max(a.Width-2, 10) }
 // frame draws a single-line border around the whole screen, padding or clipping
 // content to the terminal size.
 func (a *App) frame(p palette, content string) string {
-	iw, ih := a.innerW(), max(a.Height-2, 1)
-	b := lipgloss.NewStyle().Foreground(p.muted)
+	return frame(lipgloss.NewStyle().Foreground(p.muted), content, a.innerW(), max(a.Height-2, 1))
+}
+
+// frame draws a single-line border in style st around content, padded or clipped
+// to iw×ih cells inside the border.
+func frame(st lipgloss.Style, content string, iw, ih int) string {
 	lines := strings.Split(content, "\n")
 	out := make([]string, 0, ih+2)
-	out = append(out, b.Render("┌"+strings.Repeat("─", iw)+"┐"))
+	out = append(out, st.Render("┌"+strings.Repeat("─", iw)+"┐"))
 	for i := range ih {
 		l := ""
 		if i < len(lines) {
 			l = ansi.Truncate(lines[i], iw, "…")
 		}
-		out = append(out, b.Render("│")+padRight(l, iw)+b.Render("│"))
+		out = append(out, st.Render("│")+padRight(l, iw)+st.Render("│"))
 	}
-	out = append(out, b.Render("└"+strings.Repeat("─", iw)+"┘"))
+	out = append(out, st.Render("└"+strings.Repeat("─", iw)+"┘"))
 	return strings.Join(out, "\n")
 }
 
 // box draws a border (tl, tr, bl, br, horizontal, vertical) around text with one
-// column of padding on each side, sized to the text but at most maxW×maxH cells.
-func box(text string, maxW, maxH int, c [6]string, st lipgloss.Style) string {
+// column of padding on each side. It is w cells wide and as tall as the text, up to
+// maxH rows.
+func box(text string, w, maxH int, c [6]string, st lipgloss.Style) string {
 	lines := strings.Split(strings.TrimRight(text, "\n"), "\n")
 	if len(lines) > maxH-2 {
 		lines = lines[:max(maxH-2, 0)]
 	}
-	cw := 1
-	for _, l := range lines {
-		cw = max(cw, lipgloss.Width(l))
-	}
-	cw = min(cw, max(maxW-4, 1))
+	cw := max(w-4, 1)
 	out := make([]string, 0, len(lines)+2)
 	out = append(out, st.Render(c[0]+strings.Repeat(c[4], cw+2)+c[1]))
 	for _, l := range lines {

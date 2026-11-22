@@ -24,6 +24,7 @@ Command used for every shot: `cleanup -c .testbed/config.toml -d -v -m -s`, 132Ã
 | `v1-1-project-default.png` | `--group-by` defaults to `project` (`-g cleaner` for the old view) |
 | `v1-2-boxes.png`, `v1-2-boxes-item.png` | Single-line frame around the whole TUI; single-line box around each expanded group (header row is the top edge, collapsed groups unboxed); double-line box around the detail pane |
 | `v1-3-short-names.png`, `v1-3-detail-group.png` | Project prefix dropped from item rows under project grouping; detail box sized to its content (capped at the pane) |
+| `v1-4-detail-group.png`, `v1-4-firstrun-root.png`, `v1-4-firstrun-tools.png` | Detail box keeps the pane width, height fits content; first-run onboarding drawn in the same single-line frame, footer pinned to the bottom |
 
 ## Test bed states (`.testbed/Projects`)
 

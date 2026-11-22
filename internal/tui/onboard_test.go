@@ -256,7 +256,8 @@ func TestLineEditor(t *testing.T) {
 	}
 }
 
-// snapshot checks NFR-10: no colour escapes under NO_COLOR, at most 80 cols x 24 lines.
+// snapshot checks NFR-10: no colour escapes under NO_COLOR, at most 80 cols x 24
+// lines, drawn inside a single-line frame.
 func snapshot(t *testing.T, name string, m *OnboardModel) string {
 	t.Helper()
 	m.NoColor = true
@@ -266,8 +267,8 @@ func snapshot(t *testing.T, name string, m *OnboardModel) string {
 		t.Errorf("%s: escape sequence under NO_COLOR", name)
 	}
 	lines := strings.Split(v, "\n")
-	if len(lines) > 24 {
-		t.Errorf("%s: %d lines", name, len(lines))
+	if len(lines) != 24 || !strings.HasPrefix(lines[0], "┌") || !strings.HasPrefix(lines[23], "└") {
+		t.Errorf("%s: want a 24-line frame, got %d lines starting %q", name, len(lines), lines[0])
 	}
 	for i, l := range lines {
 		if w := len([]rune(l)); w > 80 {

@@ -46,9 +46,13 @@ func wrapLines(s string, w int) []string {
 	return out
 }
 
-// View renders the current step, at most Height lines of at most Width cells.
+// innerH is the number of rows inside the frame.
+func (m *OnboardModel) innerH() int { return max(m.Height-2, 3) }
+
+// View renders the current step inside a single-line frame, Height lines of Width
+// cells.
 func (m *OnboardModel) View() string {
-	w := max(m.Width, 20)
+	w := max(m.Width-2, 18)
 	step := m.Flow.Step()
 	titles := map[onboard.Step]string{onboard.Root: "project root", onboard.Protected: "protected directories",
 		onboard.Tools: "retired tools", onboard.Summary: "review"}
@@ -71,14 +75,18 @@ func (m *OnboardModel) View() string {
 	default:
 		body, footer = m.viewReview(w)
 	}
-	room := max(m.Height-2, 1)
+	room := max(m.innerH()-2, 1)
 	if len(body) > room {
 		body = body[:room]
 	}
 	for i, l := range body {
 		body[i] = fit(l, w)
 	}
-	return m.accent().Render(fit(title, w)) + "\n" + strings.Join(body, "\n") + "\n" + m.muted().Render(fit(footer, w))
+	for len(body) < room {
+		body = append(body, "")
+	}
+	content := m.accent().Render(fit(title, w)) + "\n" + strings.Join(body, "\n") + "\n" + m.muted().Render(fit(footer, w))
+	return frame(m.muted(), content, w, m.innerH())
 }
 
 func (m *OnboardModel) inputLine(prefix string, w int) string {
@@ -130,7 +138,7 @@ func (m *OnboardModel) viewProtected(w int) ([]string, string) {
 		b = append(b, m.muted().Render("  (none)"))
 	}
 	reserved := len(b) + 4
-	room := max(m.Height-2-reserved, 1)
+	room := max(m.innerH()-2-reserved, 1)
 	off := max(m.pcursor-room+1, 0)
 	for i := off; i < len(prot) && i < off+room; i++ {
 		prefix := "  "
@@ -172,7 +180,7 @@ func (m *OnboardModel) viewTools(w int) ([]string, string) {
 		return b, "Enter next · b back · Esc cancel"
 	}
 	b = append(b, "Mark tools you no longer use; their leftovers become cleanable once old enough.", "")
-	room := max(m.Height-2-len(b), 2)
+	room := max(m.innerH()-2-len(b), 2)
 	height := func(i int) int {
 		if onboard.ToolNote(fps[i]) != "" {
 			return 2
