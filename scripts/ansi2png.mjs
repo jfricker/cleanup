@@ -79,7 +79,7 @@ for (let m; (m = re.exec(ansi));) {
 html += esc(ansi.slice(last)) + '</span>';
 
 const page = `<!doctype html><meta charset=utf-8><body style="margin:0;background:${bg}">
-<pre id=t style="display:inline-block;margin:0;padding:14px 16px;font:14px/1.3 'DejaVu Sans Mono',Menlo,monospace;color:${fg};background:${bg};white-space:pre">${html}</pre>`;
+<pre id=t style="display:inline-block;margin:0;padding:14px 16px;font:14px/1.17 'DejaVu Sans Mono',Menlo,monospace;color:${fg};background:${bg};white-space:pre">${html}</pre>`;
 const browser = await chromium.launch();
 const p = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: cols * 9 + 60, height: 400 } });
 await p.setContent(page);

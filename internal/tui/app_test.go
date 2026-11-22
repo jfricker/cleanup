@@ -103,7 +103,7 @@ func TestAC_T1_Phases(t *testing.T) {
 	keys(a, "g")
 	// Filter.
 	keys(a, "/", "t", "a", "r", "enter")
-	if len(a.rows) != 2 || a.verdicts[a.rows[1].idx].Candidate.Rel != "b/target" {
+	if len(a.rows) != 3 || a.verdicts[a.rows[1].idx].Candidate.Rel != "b/target" || a.rows[2].kind != rowEnd {
 		t.Fatalf("filter rows %+v", a.rows)
 	}
 	keys(a, "/", "esc")

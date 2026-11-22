@@ -89,6 +89,7 @@ type rowKind int
 const (
 	rowGroup rowKind = iota
 	rowItem
+	rowEnd // closing border of an expanded group; the cursor never rests on it
 )
 
 type row struct {
@@ -454,6 +455,7 @@ func (a *App) rebuild() {
 		for _, i := range g.items {
 			a.rows = append(a.rows, row{kind: rowItem, key: k, idx: i})
 		}
+		a.rows = append(a.rows, row{kind: rowEnd, key: k})
 	}
 	a.clampScroll()
 }
@@ -491,9 +493,14 @@ func (a *App) parentRow(i int) int {
 }
 
 func (a *App) move(d int) {
-	a.cursor += d
+	a.cursor = min(max(a.cursor+d, 0), max(len(a.rows)-1, 0))
+	if d > 0 && a.onEnd(a.cursor) && a.cursor < len(a.rows)-1 {
+		a.cursor++ // step past a closing border to the next group
+	}
 	a.clampScroll()
 }
+
+func (a *App) onEnd(i int) bool { return i >= 0 && i < len(a.rows) && a.rows[i].kind == rowEnd }
 
 func (a *App) pageSize() int { return max(a.bodyHeight()-1, 1) }
 
@@ -501,12 +508,19 @@ func (a *App) bodyHeight() int { return max(a.Height-4, 3) }
 
 func (a *App) clampScroll() {
 	a.cursor = min(max(a.cursor, 0), max(len(a.rows)-1, 0))
+	if a.onEnd(a.cursor) {
+		a.cursor-- // a closing border always follows an item
+	}
 	h := a.bodyHeight()
 	if a.cursor < a.offset {
 		a.offset = a.cursor
 	}
-	if a.cursor >= a.offset+h {
-		a.offset = a.cursor - h + 1
+	bottom := a.cursor
+	if a.onEnd(bottom + 1) {
+		bottom++ // keep a group's closing border in view with its last item
+	}
+	if bottom >= a.offset+h {
+		a.offset = bottom - h + 1
 	}
 	a.offset = max(a.offset, 0)
 }
