@@ -23,32 +23,36 @@ Consequences:
 
 ## Proposed outcome
 
-- **Batch delete** stays as now: mark items, `d`, confirm, delete the selection.
-- **Immediate delete** ("delete now"): one keypress on the item under the cursor deletes
-  that item without building a selection.
-- After either action the user returns to the scan result (Review) screen, not a
-  terminal Done screen. The screen reflects the result: deleted items are gone or
-  marked deleted, failed/skipped items show why, totals (reclaimable bytes, counts)
-  are recomputed, and the selection is cleared of deleted items.
-- The session stays open until the user quits (`q`/`esc`). A summary of what was deleted
-  in the session (and the run log path) is still available, either on screen or on exit.
+- **Batch delete** stays as now: mark items, `d`, confirm modal, delete the selection.
+- **Immediate delete**: `D` on the item under the cursor shows an inline `y/n` prompt
+  (item and size); `y` deletes that item, anything else cancels.
+- After either action the user returns to the Review screen, updated in place from the
+  execute outcomes: deleted items are removed from the list, failed/skipped items stay
+  with the reason, totals are recomputed, deleted items leave the selection.
+- A transient banner on Review reports the action (bytes freed, failures, log path).
+  The Done screen is removed.
+- A status line shows cumulative bytes freed and items deleted for the session.
+- The session stays open until the user quits (`q`/`esc`); the full session summary is
+  printed on quit.
 
 ## Affected users and systems
 
 - Operators running `cleanup --delete` interactively.
 - `internal/tui` (`app.go` phases and keys, `view.go`, `program.go` effects).
 - `internal/execute` (invoked per batch; now possibly many times per session) and
-  `internal/runlog` (one log per session vs per delete).
+  `internal/runlog` (one log per session, appended per action).
 - Exit code semantics, currently set from a single delete run.
-- Plain (non-TTY) mode in `internal/plain`: unchanged unless decided otherwise.
+- Plain (non-TTY) mode in `internal/plain`: unchanged.
 
 ## Scope
 
 ### In Scope (v1)
 
-- New immediate-delete key on the current item in Review.
-- Return to Review after batch or immediate delete; Review updated in place.
-- Session-level summary and exit code aggregated over all deletes.
+- `D` immediate delete with inline `y/n` confirmation.
+- Return to Review after batch or immediate delete; Review updated from outcomes.
+- Removal of the Done phase; post-delete banner; cumulative status line.
+- One run log per session, appended per action; session summary printed on quit.
+- Exit code aggregated over the session.
 - Tests for both paths, including the return-to-Review state.
 
 ### Out of Scope (v1)
@@ -57,15 +61,20 @@ Consequences:
   the only remover; protected/skipped items stay undeletable).
 - Undo / trash.
 - Plain/non-interactive mode behaviour.
-- Rescanning the filesystem after delete (update from execute outcomes instead — see
-  Open questions).
+- Filesystem rescan after delete, automatic or on a key.
 
 ## Resolved decisions
 
-- Batch delete flow (select → `d` → confirm) is kept unchanged up to the point of
-  completion.
+- Batch flow (select → `d` → confirm modal) is unchanged up to completion.
+- Immediate delete key is `D` (pairs with batch `d`, hard to hit by accident).
+- Immediate delete asks an inline `y/n` for every item, not the batch modal.
 - Only selectable verdicts can be immediately deleted, same guard as `Selected()`.
-- The app no longer ends on delete completion; quitting is always an explicit user action.
+- Deleted items are removed from the Review list, not greyed out.
+- Review refreshes from execute outcomes only; no rescan.
+- One run log per session, appended per delete action.
+- Exit code is the worst outcome across all actions in the session.
+- The Done phase is replaced by a transient banner on Review.
+- The app no longer ends on delete completion; quitting is always explicit.
 
 ## Constraints
 
@@ -78,14 +87,4 @@ Consequences:
 
 ## Open questions
 
-1. **Key for immediate delete.** `D`, `x`, or `delete`/`backspace`? (`d` is batch.)
-2. **Confirmation for immediate delete.** None, a lightweight one-line `y/n`, or the same
-   modal as batch? Mandatory for items with notes?
-3. **Deleted items in Review.** Remove from the list, or keep greyed out as "deleted"
-   until quit?
-4. **Refresh source.** Update from execute outcomes only, or offer a rescan key?
-5. **Summary and run log.** One run log per session or per delete action? Show the
-   cumulative report on quit, in a status line, or both?
-6. **Exit code.** Worst outcome across all deletes in the session, or last action?
-7. **Done screen.** Remove it entirely, or keep it reachable (e.g. shown briefly as a
-   toast/banner after each delete)?
+None.
