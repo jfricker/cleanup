@@ -18,7 +18,7 @@ import (
 // palette holds colours for one background. State is always also shown by a glyph
 // or word, never by colour alone (TUI-6).
 type palette struct {
-	accent, muted, ok, warn, bad, sel, selFg color.Color
+	accent, muted, ok, warn, bad, sel, selFg, keyBg color.Color
 }
 
 func newPalette(dark bool) palette {
@@ -31,6 +31,7 @@ func newPalette(dark bool) palette {
 		bad:    ld(lipgloss.Color("#B3261E"), lipgloss.Color("#FF8A80")),
 		sel:    ld(lipgloss.Color("#DCD3FF"), lipgloss.Color("#3B2F73")),
 		selFg:  ld(lipgloss.Color("#1B1340"), lipgloss.Color("#FFFFFF")),
+		keyBg:  ld(lipgloss.Color("#E6E1F7"), lipgloss.Color("#2E2A44")),
 	}
 }
 
@@ -122,7 +123,7 @@ func (a *App) viewScanning(p palette) string {
 		fmt.Sprintf("   elapsed      %s", time.Since(a.ScanStart).Round(time.Second)),
 		"   " + lipgloss.NewStyle().Foreground(p.muted).Render(truncLeft(e.Path, a.innerW()-4)),
 		"",
-		lipgloss.NewStyle().Foreground(p.muted).Render(" q / Ctrl+C: stop the scan (nothing is deleted)"),
+		" " + renderHints(&p, []hint{{"q", "stop the scan"}, {"Ctrl+C", "stop"}, {"", "nothing is deleted"}}, a.innerW()-1),
 	}
 	return strings.Join(lines, "\n")
 }
@@ -300,28 +301,63 @@ func (a *App) detailText(p palette, w int) string {
 	return strings.Join(lines, "\n")
 }
 
+// hint is one key and the action it performs in a footer.
+type hint struct{ key, desc string }
+
+// renderHints draws hints as highlighted key caps followed by their action, at
+// most w cells wide. If they don't fit, hints before the last one are dropped
+// (the last is always the way out). A nil palette renders plain text for NO_COLOR.
+func renderHints(p *palette, hs []hint, w int) string {
+	render := func(hs []hint) string {
+		parts := make([]string, len(hs))
+		for i, h := range hs {
+			switch {
+			case h.key == "" && p == nil:
+				parts[i] = h.desc
+			case h.key == "":
+				parts[i] = lipgloss.NewStyle().Foreground(p.muted).Render(h.desc)
+			case p == nil:
+				parts[i] = h.key + " " + h.desc
+			default:
+				parts[i] = lipgloss.NewStyle().Bold(true).Foreground(p.accent).Background(p.keyBg).Render(" "+h.key+" ") + " " + h.desc
+			}
+		}
+		sep := "  "
+		if p == nil {
+			sep = " · "
+		}
+		return strings.Join(parts, sep)
+	}
+	hs = slices.Clone(hs)
+	out := render(hs)
+	for lipgloss.Width(out) > w && len(hs) > 1 {
+		hs = slices.Delete(hs, len(hs)-2, len(hs)-1)
+		out = render(hs)
+	}
+	return out
+}
+
 func (a *App) footer(p palette) string {
-	muted := lipgloss.NewStyle().Foreground(p.muted)
+	iw := a.innerW()
 	if a.filtering {
-		return lipgloss.NewStyle().Foreground(p.accent).Render("filter: "+a.filter+"▏") + muted.Render("  enter apply · esc clear")
+		return lipgloss.NewStyle().Foreground(p.accent).Render("filter: "+a.filter+"▏") + "  " +
+			renderHints(&p, []hint{{"enter", "apply"}, {"esc", "clear"}}, iw-len(a.filter)-12)
 	}
-	keys := "↑↓ move · ←→ fold · g group · / filter · i detail · q quit"
-	if a.innerW() < 100 {
-		keys = "↑↓ ←→ · g group · / find · i info · q quit"
+	var hs []hint
+	if a.Opts.Delete {
+		hs = append(hs, hint{"space", "select"}, hint{"a", "all"}, hint{"n", "none"}, hint{"d", "delete"})
 	}
+	hs = append(hs, hint{"↑↓", "move"}, hint{"←→", "fold"}, hint{"g", "group"}, hint{"/", "filter"}, hint{"i", "detail"}, hint{"q", "quit"})
 	status := fmt.Sprintf("%d eligible", a.eligibleCount())
 	if a.Opts.Delete {
-		if a.innerW() < 100 {
-			keys = "spc select · a all · d delete · / find · i info · q quit"
-		} else {
-			keys = "space select · a all · n none · d delete · " + keys
-		}
 		status = fmt.Sprintf("%d selected, %s", len(a.Selected()), plain.Bytes(a.SelectedSize()))
 	}
 	if a.filter != "" {
 		status += " · filter: " + a.filter
 	}
-	return muted.Render(fit(keys, a.innerW()-len(status)-3)) + "  " + lipgloss.NewStyle().Bold(true).Render(status)
+	left := renderHints(&p, hs, iw-lipgloss.Width(status)-2)
+	gap := max(iw-lipgloss.Width(left)-lipgloss.Width(status), 1)
+	return left + strings.Repeat(" ", gap) + lipgloss.NewStyle().Bold(true).Render(status)
 }
 
 func (a *App) eligibleCount() int {
@@ -356,7 +392,7 @@ func (a *App) viewConfirm(p palette) string {
 	if len(warns) > 0 {
 		lines = append(lines, "", lipgloss.NewStyle().Foreground(p.warn).Render("Warnings"))
 		for _, x := range warns {
-			lines = append(lines, "  ! "+wrap(x, w-6))
+			lines = append(lines, "  ! "+strings.ReplaceAll(wrap(x, w-10), "\n", "\n    "))
 		}
 	}
 	if len(notes) > 0 {
@@ -378,7 +414,7 @@ func (a *App) viewConfirm(p palette) string {
 		return s.Render(label)
 	}
 	buttons := lipgloss.JoinHorizontal(lipgloss.Top, btn("Cancel", !a.confirmDelete, p.accent), "  ", btn("Delete", a.confirmDelete, p.bad))
-	lines = append(lines, "", buttons, lipgloss.NewStyle().Foreground(p.muted).Render("←→ choose · enter confirm · y delete · n/esc back"))
+	lines = append(lines, "", buttons, "", renderHints(&p, []hint{{"←→", "choose"}, {"enter", "confirm"}, {"y", "delete"}, {"n/esc", "back"}}, w))
 	box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(p.bad).Padding(1, 2).Width(w).Render(strings.Join(lines, "\n"))
 	return "\n" + box
 }
@@ -402,20 +438,20 @@ func (a *App) viewDeleting(p palette) string {
 	case a.Stopping:
 		lines = append(lines, lipgloss.NewStyle().Foreground(p.warn).Render(" Stopping after the current item… (Ctrl+C again to abort it)"))
 	default:
-		lines = append(lines, lipgloss.NewStyle().Foreground(p.muted).Render(" Ctrl+C: stop after the current item"))
+		lines = append(lines, " "+renderHints(&p, []hint{{"Ctrl+C", "stop after the current item"}}, a.innerW()-1))
 	}
 	return strings.Join(lines, "\n")
 }
 
 func (a *App) viewDone(p palette) string {
 	if a.Err != nil {
-		return "\n" + lipgloss.NewStyle().Foreground(p.bad).Render(" "+a.Err.Error()) + "\n\n press q to quit"
+		return "\n" + lipgloss.NewStyle().Foreground(p.bad).Render(" "+a.Err.Error()) + "\n\n " + renderHints(&p, []hint{{"q", "quit"}}, a.innerW()-1)
 	}
 	var buf bytes.Buffer
 	if a.Report != nil {
 		plain.Printer{W: &buf}.Report(*a.Report, a.LogPath)
 	}
-	return buf.String() + "\n" + lipgloss.NewStyle().Foreground(p.muted).Render("press q or enter to quit")
+	return buf.String() + "\n" + renderHints(&p, []hint{{"q/enter", "quit"}}, a.innerW())
 }
 
 // fit truncates s to at most w display cells with an ellipsis.

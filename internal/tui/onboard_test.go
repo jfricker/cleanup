@@ -362,7 +362,7 @@ func TestOnboardSnapshots80x24(t *testing.T) {
 		t.Errorf("review:\n%s", v)
 	}
 	m3.Update(WriteDoneMsg{Summary: f3.Summary("/cfg/cleanup.toml", "/cfg/cleanup.toml.bak")})
-	if v := snapshot(t, "summary", m3); !strings.Contains(v, "Config written: /cfg/cleanup.toml") || !strings.Contains(v, "Enter / q exit") {
+	if v := snapshot(t, "summary", m3); !strings.Contains(v, "Config written: /cfg/cleanup.toml") || !strings.Contains(v, "Enter/q exit") {
 		t.Errorf("summary:\n%s", v)
 	}
 }

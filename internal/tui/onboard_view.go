@@ -38,6 +38,15 @@ func (m *OnboardModel) bad() lipgloss.Style {
 	return m.style(func(p palette) color.Color { return p.bad })
 }
 
+// hints renders the footer key hints; plain " · "-separated text under NO_COLOR.
+func (m *OnboardModel) hints(hs []hint, w int) string {
+	if m.NoColor {
+		return renderHints(nil, hs, w)
+	}
+	p := newPalette(m.Dark)
+	return renderHints(&p, hs, w)
+}
+
 func wrapLines(s string, w int) []string {
 	var out []string
 	for _, l := range strings.Split(strings.TrimRight(s, "\n"), "\n") {
@@ -61,11 +70,11 @@ func (m *OnboardModel) View() string {
 		title = "cleanup setup · done"
 	}
 	var body []string
-	var footer string
+	var footer []hint
 	switch {
 	case m.written:
 		body = wrapLines(m.summary, w)
-		footer = "Enter / q exit"
+		footer = []hint{{"Enter/q", "exit"}}
 	case step == onboard.Root:
 		body, footer = m.viewRoot(w)
 	case step == onboard.Protected:
@@ -85,7 +94,7 @@ func (m *OnboardModel) View() string {
 	for len(body) < room {
 		body = append(body, "")
 	}
-	content := m.accent().Render(fit(title, w)) + "\n" + strings.Join(body, "\n") + "\n" + m.muted().Render(fit(footer, w))
+	content := m.accent().Render(fit(title, w)) + "\n" + strings.Join(body, "\n") + "\n" + m.hints(footer, w)
 	return frame(m.muted(), content, w, m.innerH())
 }
 
@@ -111,7 +120,7 @@ func (m *OnboardModel) errLine(w int) []string {
 	return out
 }
 
-func (m *OnboardModel) viewRoot(w int) ([]string, string) {
+func (m *OnboardModel) viewRoot(w int) ([]string, []hint) {
 	var b []string
 	if pw := m.Flow.PathWarning(); pw != "" {
 		for _, l := range wrapLines("Warning: "+pw, w) {
@@ -122,10 +131,10 @@ func (m *OnboardModel) viewRoot(w int) ([]string, string) {
 	b = append(b, "Directory cleanup should scan.", "Use an absolute path or one starting with ~.", "",
 		m.inputLine("> ", w))
 	b = append(b, m.errLine(w)...)
-	return b, "Enter next · ←→ edit · Ctrl+U clear · Esc cancel"
+	return b, []hint{{"Enter", "next"}, {"←→", "edit"}, {"Ctrl+U", "clear"}, {"Esc", "cancel"}}
 }
 
-func (m *OnboardModel) viewProtected(w int) ([]string, string) {
+func (m *OnboardModel) viewProtected(w int) ([]string, []hint) {
 	b := []string{"Protected directories are never scanned or cleaned.", "Root: " + truncLeft(m.Flow.RootDisplay(), w-6)}
 	if n := m.Flow.Notice(); n != "" {
 		for _, l := range wrapLines(n, w) {
@@ -152,12 +161,12 @@ func (m *OnboardModel) viewProtected(w int) ([]string, string) {
 	}
 	b = append(b, m.errLine(w)...)
 	if m.typing {
-		return b, "Enter add (empty = done) · Ctrl+U clear · Esc cancel"
+		return b, []hint{{"Enter", "add (empty = done)"}, {"Ctrl+U", "clear"}, {"Esc", "cancel"}}
 	}
-	return b, "a add · d remove · ↑↓ select · Enter next · b back · Esc cancel"
+	return b, []hint{{"a", "add"}, {"d", "remove"}, {"↑↓", "select"}, {"Enter", "next"}, {"b", "back"}, {"Esc", "cancel"}}
 }
 
-func (m *OnboardModel) viewTools(w int) ([]string, string) {
+func (m *OnboardModel) viewTools(w int) ([]string, []hint) {
 	root := m.Flow.RootDisplay()
 	if m.probing {
 		b := []string{"Scanning for leftovers of tools you may no longer use (read-only).", m.muted().Render(truncLeft(root, w-2)), ""}
@@ -166,7 +175,7 @@ func (m *OnboardModel) viewTools(w int) ([]string, string) {
 			phase = "starting"
 		}
 		b = append(b, fmt.Sprintf(" %s %s · %d directories", m.accent().Render(spinner[m.Tick%len(spinner)]), phase, m.progress.Dirs))
-		return b, "b back · Esc cancel (nothing is written)"
+		return b, []hint{{"b", "back"}, {"Esc", "cancel (nothing is written)"}}
 	}
 	var b []string
 	if m.probeErr != nil {
@@ -177,7 +186,7 @@ func (m *OnboardModel) viewTools(w int) ([]string, string) {
 	fps := m.Flow.Footprints()
 	if len(fps) == 0 {
 		b = append(b, "No leftovers of configured retired tools were found.", "Press Enter to continue.")
-		return b, "Enter next · b back · Esc cancel"
+		return b, []hint{{"Enter", "next"}, {"b", "back"}, {"Esc", "cancel"}}
 	}
 	b = append(b, "Mark tools you no longer use; their leftovers become cleanable once old enough.", "")
 	room := max(m.innerH()-2-len(b), 2)
@@ -216,7 +225,7 @@ func (m *OnboardModel) viewTools(w int) ([]string, string) {
 			used++
 		}
 	}
-	return b, "space toggle · ↑↓ move · Enter next · b back · Esc cancel"
+	return b, []hint{{"space", "toggle"}, {"↑↓", "move"}, {"Enter", "next"}, {"b", "back"}, {"Esc", "cancel"}}
 }
 
 func plainCount(n int) string {
@@ -226,11 +235,11 @@ func plainCount(n int) string {
 	return fmt.Sprintf("%d items", n)
 }
 
-func (m *OnboardModel) viewReview(w int) ([]string, string) {
+func (m *OnboardModel) viewReview(w int) ([]string, []hint) {
 	b := []string{"Ready to write your config:", ""}
 	b = append(b, wrapLines(m.Flow.Review(), w)...)
 	if m.writing {
-		return b, "writing…"
+		return b, []hint{{"", "writing…"}}
 	}
-	return b, "Enter write config · b back · Esc cancel"
+	return b, []hint{{"Enter", "write config"}, {"b", "back"}, {"Esc", "cancel"}}
 }

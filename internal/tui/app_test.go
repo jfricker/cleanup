@@ -269,3 +269,18 @@ func TestDetailBoxFitsContent(t *testing.T) {
 		t.Fatalf("box:\n%s\nwant:\n%s", out, want)
 	}
 }
+
+// Footer hints drop from the middle when narrow, always keeping the last (quit).
+func TestRenderHintsKeepsLast(t *testing.T) {
+	hs := []hint{{"a", "all"}, {"n", "none"}, {"q", "quit"}}
+	if got := renderHints(nil, hs, 100); got != "a all · n none · q quit" {
+		t.Fatalf("wide: %q", got)
+	}
+	if got := renderHints(nil, hs, 16); got != "a all · q quit" {
+		t.Fatalf("narrow: %q", got)
+	}
+	p := newPalette(true)
+	if got := stripANSI(renderHints(&p, hs, 100)); got != " a  all   n  none   q  quit" {
+		t.Fatalf("styled: %q", got)
+	}
+}
