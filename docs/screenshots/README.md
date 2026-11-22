@@ -59,6 +59,9 @@ Command used for every shot: `cleanup -c .testbed/config.toml -d -v -m -s`, 132Ã
 3. **Row columns**: age, kind badge, status word and size bar, alongside checkbox,
    path and size.
 4. **Skipped items**: a separate tab (Eligible | Skipped) instead of the bottom group.
+5. **Status explanation**: each status word comes with a plain-language explanation
+   of what it means and what would change it (e.g. `fresh â€” used 3d ago; eligible
+   after 30d`).
 
 ### v0 defects seen on the test bed
 
