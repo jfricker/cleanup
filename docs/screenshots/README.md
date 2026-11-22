@@ -49,3 +49,22 @@ Command used for every shot: `cleanup -c .testbed/config.toml -d -v -m -s`, 132�
 | `.orca` (locked worktree inside) | Retired | 90d | skipped: contains skipped git tree | |
 | `client-work/**` | — | 200d | not shown | `protected_paths` |
 | `linked-deps/node_modules` | — | — | not proposed | symlink to `elsewhere/` |
+
+## v1 decisions (operator Q&A, 2026-11-22)
+
+1. **Staleness**: age-gate venvs and node_modules like worktrees: recent ones are
+   listed as `fresh` and are not selectable. Age comes from the project's last
+   activity, with the threshold in config.
+2. **Primary view**: projects sorted by reclaimable size, with their artifacts nested.
+3. **Row columns**: age, kind badge, status word and size bar, alongside checkbox,
+   path and size.
+4. **Skipped items**: a separate tab (Eligible | Skipped) instead of the bottom group.
+
+### v0 defects seen on the test bed
+
+- A locked worktree's reason renders as `locked: locked`; the lock reason
+  (`claude agent running`) is dropped.
+- Gone worktree entries (`service-wt/moved-away`) are not surfaced, though the
+  worktrees cleaner's description says they are.
+- Detail pane: `path` wraps mid-word; `about` shows the bare branch name.
+- Protected and outside-root items show `0 B`, which reads as "nothing to reclaim".
