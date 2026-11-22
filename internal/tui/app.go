@@ -504,7 +504,9 @@ func (a *App) onEnd(i int) bool { return i >= 0 && i < len(a.rows) && a.rows[i].
 
 func (a *App) pageSize() int { return max(a.bodyHeight()-1, 1) }
 
-func (a *App) bodyHeight() int { return max(a.Height-4, 3) }
+// bodyHeight is the tree's height: the terminal less the frame (2), the header (1)
+// and the two-line footer (2).
+func (a *App) bodyHeight() int { return max(a.Height-5, 3) }
 
 func (a *App) clampScroll() {
 	a.cursor = min(max(a.cursor, 0), max(len(a.rows)-1, 0))

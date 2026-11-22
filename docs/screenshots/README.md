@@ -26,6 +26,7 @@ Command used for every shot: `cleanup -c .testbed/config.toml -d -v -m -s`, 132Ã
 | `v1-3-short-names.png`, `v1-3-detail-group.png` | Project prefix dropped from item rows under project grouping; detail box sized to its content (capped at the pane) |
 | `v1-4-detail-group.png`, `v1-4-firstrun-root.png`, `v1-4-firstrun-tools.png` | Detail box keeps the pane width, height fits content; first-run onboarding drawn in the same single-line frame, footer pinned to the bottom |
 | `v1-5-footer.png`, `v1-5-footer-confirm.png`, `v1-5-footer-firstrun.png` | Key hints as highlighted key caps with full-contrast action text on every screen; selection total right-aligned; hints drop from the middle when narrow (quit always kept); confirm-modal warnings wrap with a hanging indent |
+| `v1-6-footer-two-lines.png`, `v1-6-footer-dryrun.png` | Review footer on two lines: navigation/view keys + selection total, then actions (select, all, none, delete, quit); dry run shows only quit on line 2 |
 
 ## Test bed states (`.testbed/Projects`)
 

@@ -337,27 +337,33 @@ func renderHints(p *palette, hs []hint, w int) string {
 	return out
 }
 
+// footer is two lines: navigation and view keys with the selection total on the
+// right, then the actions that change what is selected or deleted.
 func (a *App) footer(p palette) string {
 	iw := a.innerW()
-	if a.filtering {
-		return lipgloss.NewStyle().Foreground(p.accent).Render("filter: "+a.filter+"▏") + "  " +
-			renderHints(&p, []hint{{"enter", "apply"}, {"esc", "clear"}}, iw-len(a.filter)-12)
-	}
-	var hs []hint
-	if a.Opts.Delete {
-		hs = append(hs, hint{"space", "select"}, hint{"a", "all"}, hint{"n", "none"}, hint{"d", "delete"})
-	}
-	hs = append(hs, hint{"↑↓", "move"}, hint{"←→", "fold"}, hint{"g", "group"}, hint{"/", "filter"}, hint{"i", "detail"}, hint{"q", "quit"})
 	status := fmt.Sprintf("%d eligible", a.eligibleCount())
 	if a.Opts.Delete {
 		status = fmt.Sprintf("%d selected, %s", len(a.Selected()), plain.Bytes(a.SelectedSize()))
 	}
-	if a.filter != "" {
+	if a.filter != "" && !a.filtering {
 		status += " · filter: " + a.filter
 	}
-	left := renderHints(&p, hs, iw-lipgloss.Width(status)-2)
+	var left string
+	if a.filtering {
+		left = lipgloss.NewStyle().Foreground(p.accent).Render("filter: "+a.filter+"▏") + "  " +
+			renderHints(&p, []hint{{"enter", "apply"}, {"esc", "clear"}}, iw-len(a.filter)-12-len(status))
+	} else {
+		nav := []hint{{"↑↓", "move"}, {"←→", "fold"}, {"g", "group"}, {"/", "filter"}, {"i", "detail"}}
+		left = renderHints(&p, nav, iw-lipgloss.Width(status)-2)
+	}
 	gap := max(iw-lipgloss.Width(left)-lipgloss.Width(status), 1)
-	return left + strings.Repeat(" ", gap) + lipgloss.NewStyle().Bold(true).Render(status)
+	line1 := left + strings.Repeat(" ", gap) + lipgloss.NewStyle().Bold(true).Render(status)
+	var acts []hint
+	if a.Opts.Delete {
+		acts = append(acts, hint{"space", "select"}, hint{"a", "all"}, hint{"n", "none"}, hint{"d", "delete"})
+	}
+	acts = append(acts, hint{"q", "quit"})
+	return line1 + "\n" + renderHints(&p, acts, iw)
 }
 
 func (a *App) eligibleCount() int {
