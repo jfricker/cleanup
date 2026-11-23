@@ -1,9 +1,9 @@
 # Batch and immediate delete with persistent review screen
 
 **Author**: John Fricker.
-**Last updated**: 2026-11-22.
-**Status**: Draft.
-**Approved by**: —
+**Last updated**: 2026-11-23.
+**Status**: Approved.
+**Approved by**: John Fricker (2026-11-23).
 
 ## Problem
 
